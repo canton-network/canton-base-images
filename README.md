@@ -106,4 +106,4 @@ Results:
 - Text reports are attached to the workflow run as artifacts.
 
 
-Copyright canton-base-images contributors. All rights reserved.
+Copyright (c) canton-base-images contributors. All rights reserved.
