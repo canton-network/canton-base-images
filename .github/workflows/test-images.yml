@@ -1,0 +1,123 @@
+name: Test Images
+
+on:
+  workflow_call:
+    inputs:
+      variants:
+        description: 'Comma-separated variants to test'
+        required: false
+        type: string
+        default: 'minimal,base,jdk,full'
+      image_tag_suffix:
+        description: 'Tag suffix'
+        required: false
+        type: string
+        default: ''
+      platforms:
+        description: 'Comma-separated platforms to test'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  test-images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [minimal, base, jdk, full]
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: install gcloud
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          project_id: 'da-images'
+
+      - name: gcloud login
+        run: |
+          mkdir -p "${HOME}/.config/gcloud"
+          echo '${{ secrets.DA_IMAGES }}' >"${HOME}/.config/gcloud_cred.json"
+          gcloud auth activate-service-account --key-file="${HOME}/.config/gcloud_cred.json"
+          gcloud auth configure-docker europe-docker.pkg.dev --quiet
+      
+      - name: Check if variant should be tested
+        id: check
+        run: |
+          variants="${{ inputs.variants || 'minimal,base,jdk,full' }}"
+          if [[ ",$variants," == *",${{ matrix.variant }},"* ]]; then
+            echo "test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "test=false" >> "$GITHUB_OUTPUT"
+          fi
+          
+          platforms="${{ inputs.platforms || 'linux/amd64,linux/arm64' }}"
+          if [[ ",$platforms," == *",${{ matrix.platform }},"* ]]; then
+            echo "test_platform=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "test_platform=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set up QEMU
+        if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build image tag
+        env:
+          RELEASE_STATUS: ${{ startsWith(github.ref, 'refs/heads/release-line') && 'production' || 'beta' }}
+        if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
+        id: tag
+        run: |
+          prefix=$(jq -r ".repositories.$RELEASE_STATUS" artifacts.json)
+          suffix="${{ inputs.image_tag_suffix }}"
+          variant="${{ matrix.variant }}"
+          
+          if [[ -n "$suffix" ]]; then
+            tag="${prefix}:${variant}-${suffix}"
+          else
+            tag="${prefix}:${variant}"
+          fi
+          
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Testing image: $tag"
+
+      - name: Pull image
+        if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
+        run: |
+          docker pull --platform ${{ matrix.platform }} ${{ steps.tag.outputs.tag }}
+
+      - name: Run functional tests
+        if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
+        run: |
+          chmod +x scripts/test_image.sh
+          ./scripts/test_image.sh \
+            --variant ${{ matrix.variant }} \
+            --tag ${{ steps.tag.outputs.tag }} \
+            --platform ${{ matrix.platform }} \
+            --verbose
+
+      - name: Run validate SBOM
+        if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
+        run: |
+          chmod +x scripts/validate_sbom.sh
+          ./scripts/validate_sbom.sh \
+            --platform ${{ matrix.platform }} \
+            ${{ steps.tag.outputs.tag }}
+
+      - name: Test summary
+        if: always() && steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
+        run: |
+          echo "## Test Results: ${{ matrix.variant }} (${{ matrix.platform }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ${{ steps.tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Platform: ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "- Status: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Status: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi

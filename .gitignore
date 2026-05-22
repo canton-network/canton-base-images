@@ -1,0 +1,7 @@
+src
+rootfs*
+build
+*.swp
+.direnv
+**.idea/**
+verify-signature.json

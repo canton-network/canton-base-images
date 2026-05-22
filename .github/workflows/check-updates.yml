@@ -1,0 +1,96 @@
+name: Check Upstream Updates
+
+on:
+  schedule:
+    - cron: '10 19 * * *' # Optional: daily at 18:45 UTC
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install curl
+        run: sudo apt-get update && sudo apt-get install -y curl
+
+      - name: Run update checker (JSON)
+        id: check
+        run: |
+          chmod +x scripts/check_updates.sh
+          out=$(./scripts/check_updates.sh --json)
+          echo "$out" > updates.json
+          echo "json=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Parse result and summarize
+        id: summary
+        run: |
+          # Minimal parsing without jq
+          any=false
+          table="| Component | Current | Latest | Update |\n|---|---|---|---|\n"
+          for k in busybox glibc ncurses bash tzdb openjdk tini grpc-health-probe cacert; do
+            cur=$(grep -o '"'"$k"'":{"current":"[^"]*' updates.json | sed -E 's/.*current":"([^"]*).*/\1/')
+            lat=$(grep -o '"'"$k"'":{"current":"[^"]*","latest":"[^"]*' updates.json | sed -E 's/.*latest":"([^"]*).*/\1/')
+            upd=$(grep -oE '"'"$k"'":{"current":"[^"]*","latest":"[^"]*","update":(true|false)' updates.json | sed -E 's/.*"update":(true|false).*/\1/')
+            [[ "$upd" == "true" ]] && any=true
+            mark=$([[ "$upd" == "true" ]] && echo "YES" || echo "-")
+            table+="| $k | ${cur:-?} | ${lat:-?} | $mark |\n"
+          done
+          echo "$table" > summary.md
+          echo "any=$any" >> "$GITHUB_OUTPUT"
+
+      - name: Debug conditions
+        run: |
+          echo "event: ${{ github.event_name }}"
+          echo "summary.any: ${{ steps.summary.outputs.any }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-report
+          path: |
+            updates.json
+            summary.md
+
+      - name: Create or update issue
+        if: ${{ steps.summary.outputs.any == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const content = fs.readFileSync('summary.md', 'utf8');
+            // List open issues and look for an existing one by title
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            const title = 'Dependency update(s) available';
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              if ((existing.body || '') !== content) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body: content
+                });
+                core.info(`Updated existing issue #${existing.number}`);
+              } else {
+                core.info('Existing issue is up-to-date. No changes.');
+              }
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: content,
+                labels: ['dependencies', 'update']
+              });
+              core.info(`Created new issue #${created.number}`);
+            }
