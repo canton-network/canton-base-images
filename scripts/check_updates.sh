@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# Copyright (c) canton-base-images contributors. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 # Check upstream for newer versions of components whose versions are specified in artifacts.json (da_build.conf may only provide paths, not version pins)
