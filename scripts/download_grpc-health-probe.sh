@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# Copyright (c) canton-base-images contributors. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 # Download grpc-health-probe static binaries for amd64 and arm64 and place in src/
