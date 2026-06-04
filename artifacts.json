@@ -1,0 +1,83 @@
+{
+  "SOURCE": {
+    "BUSYBOX": {
+        "VERSION": "1.38.0",
+        "NAME": "busybox-1.38.0.tar.bz2",
+        "KEYID": "C9E9416F76E610DBD09D040F47B70C55ACC9965B"
+    },
+    "GLIBC": {
+        "VERSION": "2.43",
+        "NAME": "glibc-2.43.tar.xz",
+        "KEYID": "FD19E6D31B192EE4DC63EAD3DC2B16215ED5412A"
+    },
+    "NCURSES": {
+        "VERSION": "6.6",
+        "NAME": "ncurses-6.6.tar.gz",
+        "KEYID": "19882D92DDA4C400C22C0D56CC2AF4472167BE03"
+    },
+    "BASH": {
+        "VERSION": "5.3",
+        "NAME": "bash-5.3.tar.gz",
+        "KEYID": "7C0135FB088AAF6C66C650B9BB5869F064EA74AB"
+    },
+    "TZDB": {
+        "VERSION": "2026b",
+        "NAME": "tzdata2026b.tar.gz",
+        "KEYID": "7E3792A9D8ACF7D633BC1588ED97E90E62AA7E34"
+    },
+    "OPENJDK": {
+        "VERSION": "21.0.11_10",
+        "X86_NAME": "OpenJDK21U-jdk_x64_linux_hotspot_21.0.11_10.tar.gz",
+        "ARM_NAME": "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.11_10.tar.gz",
+        "KEYID": "3B04D753C9050D9A5D343F39843C48A565F8F04B"
+    },
+    "TINI": {
+        "VERSION": "v0.19.0",
+        "X86_NAME": "tini-amd64",
+        "ARM_NAME": "tini-arm64",
+        "KEYID": "0B588DFF0527A9B7"
+    },
+    "GRPC_HEALTH_PROBE": {
+        "VERSION": "v0.4.50",
+        "X86_NAME": "grpc-health-probe-amd64",
+        "ARM_NAME": "grpc-health-probe-arm64"
+    },
+    "CACERT": {
+        "VERSION": "2026-05-14"
+    },
+    "SCREEN": {
+      "NAME": "screen-5.0.1.tar.gz",
+      "VERSION": "5.0.1",
+      "KEYID": "7832918905C6D316DFB54313898D726C87C5AFE3"
+    },
+    "JEMALLOC": {
+      "NAME": "jemalloc-5.3.1.tar.bz2",
+      "VERSION": "5.3.1"
+    },
+    "LIBXCRYPT": {
+      "NAME": "libxcrypt-4.5.2.tar.xz",
+      "VERSION": "4.5.2",
+      "KEYID": "678CE3FEE430311596DB8C16F52E98007594C21D"
+    },
+    "NODEJS": {
+        "VERSION": "20.11.1",
+        "X86_NAME": "node-v20.11.1-linux-x64.tar.xz",
+        "ARM_NAME": "node-v20.11.1-linux-arm64.tar.xz",
+        "KEYID": "890C08DB8579162FEE0DF9DB8BEAB4DFCF555EF4"
+    },
+    "GCC": {
+        "VERSION": "13.2.0",
+        "NAME": "gcc-13.2.0.tar.xz",
+        "KEYID": "6C35B99309B5FA62",
+        "COMMENT": "GCC 13.2.0 for Ubuntu 24.04, see build_gcc.sh for details"
+    }
+  },
+  "repositories": {
+    "alpha": "",
+    "beta": "europe-docker.pkg.dev/da-images/public-unstable/docker/da-base-image",
+    "release_candidate": "",
+    "production": "europe-docker.pkg.dev/da-images/public/docker/da-base-image"
+  },
+  "release_tags": ["full", "jdk", "base", "minimal"],
+  "infrastructure": []
+}

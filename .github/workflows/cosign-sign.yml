@@ -1,0 +1,131 @@
+name: Cosign Keyless Signing
+
+on:
+  workflow_call:
+    inputs:
+      image_ref:
+        description: Image reference to sign
+        required: true
+        type: string
+    secrets:
+      workload_identity_provider:
+        required: true
+      service_account:
+        required: true
+      build_service_account_key:
+        required: true
+      signer_account:
+        required: true
+    outputs:
+      digest:
+        description: Image digest reference that was signed
+        value: ${{ jobs.sign-images.outputs.digest }}
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+jobs:
+  sign-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    outputs:
+      digest: ${{ steps.sign.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (OIDC)
+        id: auth-oidc
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.workload_identity_provider }}
+          service_account: ${{ secrets.service_account }}
+          create_credentials_file: true
+
+      - name: Install gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Install crane
+        run: |
+          set -euo pipefail
+          CRANE_VERSION="v0.20.6"
+          curl -fsSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/crane /usr/local/bin/crane
+
+      - name: Docker login to Artifact Registry (builder key, step-local)
+        env:
+          BUILDER_KEY: ${{ secrets.build_service_account_key }}
+        run: |
+           set -euo pipefail
+           echo "${BUILDER_KEY}" | docker login \
+             -u _json_key \
+             --password-stdin \
+             https://europe-docker.pkg.dev >/dev/null
+
+      - name: Sign images with Cosign (OIDC signer, token step-local)
+        id: sign
+        env:
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.auth-oidc.outputs.credentials_file_path }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth-oidc.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+
+          COSIGN_IDENTITY_TOKEN="$(gcloud auth print-identity-token \
+            --audiences=sigstore \
+            --include-email \
+            --impersonate-service-account=${{ secrets.signer_account }})"
+          test -n "${COSIGN_IDENTITY_TOKEN}"
+          echo "::add-mask::${COSIGN_IDENTITY_TOKEN}"
+
+          refs="$(printf '%s' "${{ inputs.image_ref }}" \
+            | sed -e 's/^[[:space:]]*\[//' -e 's/\][[:space:]]*$//' \
+                  -e 's/"//g' -e "s/'//g" -e 's/[[:space:]]//g' \
+            | tr ',' '\n' \
+            | sed '/^$/d')"
+
+          out=""
+          while IFS= read -r image; do
+            [[ -z "${image}" ]] && continue
+
+            if [[ "${image}" == *@sha256:* ]]; then
+              image_to_sign="${image}"
+            else
+              digest="$(crane digest "${image}")"
+              image_no_tag="${image%%:*}"
+              image_to_sign="${image_no_tag}@${digest}"
+            fi
+
+            COSIGN_IDENTITY_TOKEN="${COSIGN_IDENTITY_TOKEN}" cosign sign --yes "${image_to_sign}"
+            out+="${image_to_sign}"$'\n'
+          done <<< "${refs}"
+
+          {
+            echo "digest<<EOF"
+            printf '%s' "${out}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Verify cosign signature(s)
+        run: |
+          set -euo pipefail
+          refs="${{ steps.sign.outputs.digest }}"
+          test -n "${refs}"
+
+          while IFS= read -r image; do
+            [[ -z "${image}" ]] && continue
+            cosign verify \
+              --certificate-oidc-issuer="https://accounts.google.com" \
+              --certificate-identity="${{ secrets.signer_account }}" \
+              "${image}" >/dev/null
+          done <<< "${refs}"
+
+          echo "Cosign sign+verify OK"
