@@ -3,12 +3,12 @@ name: Build and Push Variant Images
 on:
   push:
     branches:
-      - 'release-line*'
+      - 'none'
     tags:
-      - 'v*'
+      - 'none'
   pull_request:
     branches:
-      - 'release-line*'
+      - 'none'
 
 permissions:
   contents: read
