@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release-line*
+      - main
     tags:
       - 'v*'
   pull_request:
@@ -23,11 +24,19 @@ jobs:
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           script: |
+            const payload = {
+              sha: context.payload.pull_request?.head.sha || context.sha,
+              ref: context.ref,
+              event_name: context.eventName,
+              base_ref: context.payload.pull_request?.base.ref,
+              is_draft: context.payload.pull_request?.draft,
+            };
+            console.log("Sending payload:", payload);
             await github.rest.repos.createDispatchEvent({
               owner: 'dach-ny',
               repo: 'da-base-images',
               event_type: 'build-images',
               client_payload: {
-                sha: context.sha
+                sha: payload 
               }
             });
