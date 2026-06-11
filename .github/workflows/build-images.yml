@@ -1,14 +1,8 @@
 name: Build and Push Variant Images
 
 on:
-  push:
-    branches:
-      - 'release-line*'
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - 'release-line*'
+  repository_dispatch:
+    types: [build-images]
 
 permissions:
   contents: read
@@ -33,6 +27,13 @@ jobs:
       UPLOAD_SARIF: ${{ inputs.upload_sarif || 'false' }}
 
     steps:
+      - name: "DEBUG: Display payload and exit"
+        run: |
+          echo "Workflow triggered successfully by repository_dispatch."
+          echo "Commit SHA from payload: ${{ github.event.client_payload.sha }}"
+          echo "Full event payload: ${{ toJSON(github.event.client_payload) }}"
+          echo "Exiting job for debugging purposes."
+          exit 0
       # - name: Free Disk Space (Ubuntu)
       #   uses: jlumbroso/free-disk-space@main
       #   with:
@@ -49,8 +50,11 @@ jobs:
       #     docker-images: true
       #     swap-storage: true     - 
 
-      - name: Checkout
+      - name: Checkout canton-network/canton-base-image
         uses: actions/checkout@v4
+        with:
+          repository: canton-network/canton-base-image
+          ref: ${{ github.event.client_payload.sha }}
 
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
