@@ -1,14 +1,8 @@
 name: Build and Push Variant Images
 
 on:
-  push:
-    branches:
-      - 'none'
-    tags:
-      - 'none'
-  pull_request:
-    branches:
-      - 'none'
+  repository_dispatch:
+    types: [build-images]
 
 permissions:
   contents: read
@@ -49,8 +43,11 @@ jobs:
       #     docker-images: true
       #     swap-storage: true     - 
 
-      - name: Checkout
+      - name: Checkout canton-network/canton-base-image
         uses: actions/checkout@v4
+        with:
+          repository: canton-network/canton-base-image
+          ref: ${{ github.event.client_payload.sha }}
 
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
