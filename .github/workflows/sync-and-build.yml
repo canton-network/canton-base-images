@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'release-line*'
   workflow_dispatch:
 
 jobs:
