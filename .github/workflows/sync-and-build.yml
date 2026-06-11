@@ -31,6 +31,7 @@ jobs:
               is_pr: context.payload.pull_request,
               is_push: context.payload.push
             };
+            console.log("Send Context:", context);
             console.log("Sending payload:", payload);
             await github.rest.repos.createDispatchEvent({
               owner: 'dach-ny',
