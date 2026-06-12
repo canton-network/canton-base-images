@@ -38,7 +38,7 @@
         "KEYID": "0B588DFF0527A9B7"
     },
     "GRPC_HEALTH_PROBE": {
-        "VERSION": "v0.4.51",
+        "VERSION": "v0.4.52",
         "X86_NAME": "grpc-health-probe-amd64",
         "ARM_NAME": "grpc-health-probe-arm64"
     },
