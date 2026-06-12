@@ -37,7 +37,5 @@ jobs:
               owner: 'dach-ny',
               repo: 'da-base-images',
               event_type: 'build-images',
-              client_payload: {
-               sha: payload 
-              }
+              client_payload: payload
             });
