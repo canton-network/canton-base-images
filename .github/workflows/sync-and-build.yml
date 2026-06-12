@@ -26,10 +26,10 @@ jobs:
           script: |
             const payload = {
               sha: context.payload.pull_request?.head.sha || context.sha,
-              ref: context.ref,
+              ref: context.payload.pull_request?.head.ref || context.ref,
+              repo: context.payload.pull_request?.head.repo.full_name || context.repository,
               event_name: context.eventName,
-              is_pr: context.payload.pull_request,
-              is_push: context.payload.push
+              pull_request: context.payload.pull_request
             };
             console.log("Send Context:", context);
             console.log("Sending payload:", payload);
@@ -37,7 +37,5 @@ jobs:
               owner: 'dach-ny',
               repo: 'da-base-images',
               event_type: 'build-images',
-              client_payload: {
-                sha: payload 
-              }
+              client_payload: payload
             });
