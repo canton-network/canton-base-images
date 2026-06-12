@@ -27,7 +27,7 @@ jobs:
             const payload = {
               sha: context.payload.pull_request?.head.sha || context.sha,
               ref: context.ref,
-              repo: context.repository.full_name,
+              repo: context.repository,
               event_name: context.eventName,
               is_pr: context.payload.pull_request,
               is_push: context.payload.push
