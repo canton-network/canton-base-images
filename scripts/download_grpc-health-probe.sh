@@ -34,9 +34,16 @@ Options:
   --skip-verify      Ignored (no signatures available)
   -h, --help         Show help
 
-Uses version and names from da_build.conf: GRPC_HEALTH_PROBE_VERSION, GRPC_HEALTH_PROBE_X86_NAME, GRPC_HEALTH_PROBE_ARM_NAME
+Uses version and names from artifacts.json: GRPC_HEALTH_PROBE_VERSION, GRPC_HEALTH_PROBE_X86_NAME, GRPC_HEALTH_PROBE_ARM_NAME
 EOF
 }
+
+if [[ ! -f da_build.conf ]]; then err "da_build.conf not found"; exit 1; fi
+# shellcheck disable=SC1091
+source da_build.conf
+
+# Version stamp file
+readonly VERSION_STAMP_BASE="${BUILD_DIR}/.grpc_health_probe_version"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -49,10 +56,6 @@ while [[ $# -gt 0 ]]; do
     *) err "Unknown option: $1"; show_help; exit 1;;
   esac
 done
-
-if [[ ! -f da_build.conf ]]; then err "da_build.conf not found"; exit 1; fi
-# shellcheck disable=SC1091
-source da_build.conf
 
 # Application configuration
 if [[ ! -f artifacts.json ]]; then
@@ -77,11 +80,15 @@ URL_ARM64="https://github.com/grpc-ecosystem/grpc-health-probe/releases/download
 
 fetch() {
   local url="$1" arch="$2" outname="$3"
-  local outfile="${SOURCE_DIR}/${outname}"
+  local versioned_outname="${outname}-${GRPC_HEALTH_PROBE_VERSION}"
+  local outfile="${SOURCE_DIR}/${versioned_outname}"
   if [[ -f "$outfile" && $FORCE -eq 0 ]]; then
-    log "Skipping download for $outname, file exists."
+    log "Skipping download for $versioned_outname, file exists."
+    # Create a symlink to the unversioned name for consistent access
+    ln -sf "$versioned_outname" "${SOURCE_DIR}/${outname}"
     return 0
   fi
+
   local attempt=1
   while (( attempt <= MAX_RETRIES )); do
     if curl -fSL --retry 3 --retry-delay 3 -o "$outfile" "$url"; then
@@ -91,12 +98,16 @@ fetch() {
     sleep "$RETRY_DELAY"
     attempt=$((attempt+1))
   done
+
   if [[ ! -s "$outfile" ]]; then
     err "Failed to download $url"
     return 1
   fi
+
   chmod +x "$outfile"
-  log "Downloaded $outname"
+  log "Downloaded $versioned_outname"
+  # Create a symlink to the unversioned name for consistent access
+  ln -sf "$versioned_outname" "${SOURCE_DIR}/${outname}"
 }
 
 if [[ $need_amd64 -eq 1 ]]; then
