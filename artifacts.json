@@ -27,8 +27,8 @@
     },
     "OPENJDK": {
         "VERSION": "21.0.11_10",
-        "X86_NAME": "OpenJDK21U-jdk_x64_linux_hotspot_21.0.11_10.tar.gz",
-        "ARM_NAME": "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.11_10.tar.gz",
+        "X86_NAME": "OpenJDK21U-jre_x64_linux_hotspot_21.0.11_10.tar.gz",
+        "ARM_NAME": "OpenJDK21U-jre_aarch64_linux_hotspot_21.0.11_10.tar.gz",
         "KEYID": "3B04D753C9050D9A5D343F39843C48A565F8F04B"
     },
     "TINI": {
