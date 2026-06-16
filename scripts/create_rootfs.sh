@@ -48,7 +48,7 @@ declare -A jdk_map
 declare -A grpc_health_probe_map
 declare -A nodejs_map
 tini_map=(["amd64"]="tini-amd64" ["arm64"]="tini-arm64")
-jdk_map=(["amd64"]="OpenJDK21U-jdk_x64_linux_hotspot_" ["arm64"]="OpenJDK21U-jdk_aarch64_linux_hotspot_")
+jdk_map=(["amd64"]="OpenJDK21U-jre_x64_linux_hotspot_" ["arm64"]="OpenJDK21U-jre_aarch64_linux_hotspot_")
 grpc_health_probe_map=(["amd64"]="grpc-health-probe-amd64" ["arm64"]="grpc-health-probe-arm64")
 nodejs_map=(["amd64"]="${NODEJS_X86_NAME}" ["arm64"]="${NODEJS_ARM_NAME}")
 
