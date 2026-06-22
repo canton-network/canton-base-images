@@ -21,9 +21,12 @@ ENABLE_PROVENANCE=0
 SBOM_OUTPUT=""
 ENABLE_DIGEST_OUTPUT=0
 DIGEST_OUTPUT_FILE=""
+BLACKDUCK_SCAN=0
 
 # Script configuration
 readonly SCRIPT_NAME="${BASH_SOURCE[0]##*/}"
+
+source da_build.conf
 
 # Help function
 show_help() {
@@ -45,6 +48,7 @@ OPTIONS:
     --provenance        Enable provenance attestation (experimental with GAR)
     --sbom-output FILE  Save SBOM to file instead of pushing to registry
     --digest-output [FILE] Save image digest to a file (optional)
+    --blackduck-scan    Run Black Duck scan on the built image (requires --load)
     --dry-run           Show Dockerfile and commands without executing
     -h, --help          Show this help message
 
@@ -149,6 +153,10 @@ while [[ $# -gt 0 ]]; do
                 shift 1
             fi
             ;;
+        --blackduck-scan)
+            BLACKDUCK_SCAN=1
+            shift
+            ;;
         --dry-run)
             DRY_RUN=1
             shift
@@ -169,6 +177,21 @@ done
 if [[ ${#TAGS[@]} -eq 0 ]]; then
     error "At least one --tag is required"
     show_help
+    exit 1
+fi
+
+if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $LOAD -eq 0 ]]; then
+    error "--blackduck-scan requires --load to be specified"
+    exit 1
+fi
+
+if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
+    error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for --blackduck-scan"
+    exit 1
+fi
+
+if [[ $LOAD -eq 1 ]] && [[ "$(echo "$PLATFORMS" | tr ',' '\n' | wc -l)" -ne 1 ]]; then
+    error "Only one architecture can be built when --load is requested"
     exit 1
 fi
 
@@ -270,7 +293,7 @@ build_image() {
     git_sha=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
     
     local git_url
-    git_url=$(git config --get remote.origin.url 2>/dev/null || echo "https://github.com/DACH-NY/da-base-images")
+    git_url=$(git config --get remote.origin.url 2>/dev/null || echo "https://github.com/canton-network/canton-base-images")
     
     # Get version from date or tag
     local version
@@ -357,6 +380,29 @@ build_image() {
     fi
 }
 
+run_blackduck_scan() {
+    local image_name="$1"
+    log "Starting Black Duck scan for image: $image_name"
+
+    local temp_tar_file
+    temp_tar_file=$(mktemp)
+
+    log "Saving image to temporary file: $temp_tar_file"
+    if ! docker image save "$image_name" -o "$temp_tar_file"; then
+        error "Failed to save docker image to tar file"
+        rm -f "$temp_tar_file"
+        return 1
+    fi
+
+    log "Running Synopsys Detect..."
+    bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build $BLACKDUCK_PROJECT_NAME "$image_name" -detect.tools=CONTAINER_SCAN --detect.container.scan.file.path="$temp_tar_file" --detect.tools.excluded=DETECTOR,SIGNATURE_SCAN
+
+    log "Cleaning up temporary tar file: $temp_tar_file"
+    rm -f "$temp_tar_file"
+
+    log "Black Duck scan finished."
+}
+
 # Main function
 main() {
     log "Starting Docker image build with variant: $VARIANT"
@@ -388,6 +434,11 @@ main() {
     # Build image
     build_image "$temp_dockerfile" "$metadata_file"
     
+    # Run Black Duck scan if enabled
+    if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $DRY_RUN -eq 0 ]]; then
+        run_blackduck_scan "${TAGS[0]}"
+    fi
+
     # Cleanup
     if [[ $DRY_RUN -eq 0 ]]; then
         rm -f "$temp_dockerfile"
