@@ -46,6 +46,7 @@ BUILD_FULL=0
 REINIT_CONFIG=0
 VERBOSE=0
 FORCE_REBUILD=0
+BLACKDUCK_SCAN=0
 
 # Cleanup function for error handling
 cleanup() {
@@ -73,6 +74,7 @@ OPTIONS:
     --full               Build full image with full busybox tools
     --reinit            Reinitialize .config file even if it exists
     --verbose           Show build output (default: send to log files)
+    --blackduck-scan    Run Black Duck scan on the build output (amd64 only)
     -h, --help          Show this help message
 
 PREREQUISITES:
@@ -138,6 +140,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --verbose)
             VERBOSE=1
+            shift
+            ;;
+        --blackduck-scan)
+            BLACKDUCK_SCAN=1
             shift
             ;;
         -h|--help)
@@ -324,6 +330,42 @@ build_busybox() {
     log "Successfully built busybox for ${variant}"
 }
 
+run_blackduck_scan() {
+    log "Starting Black Duck scan for busybox..."
+
+    if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
+        error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
+        exit 1
+    fi
+
+    local out_dir=$BUSYBOX_X86_OUT
+    local app_name="busybox"
+    if [[ $BUILD_FULL -eq 1 ]]; then
+        out_dir=$BUSYBOX_X86_FULL_OUT
+        app_name="busybox-full"
+    fi
+
+    if [[ ! -d "$out_dir" ]]; then
+        error "amd64 output directory not found: $out_dir"
+        error "Please build for amd64 first."
+        return 1
+    fi
+
+    log "Changing to directory: $out_dir"
+    pushd "$out_dir" > /dev/null
+
+    log "Running Synopsys Detect for autonomous scan..."
+    
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "$app_name" --detect.autonomous.scan.enabled=true; then
+        error "Black Duck scan failed."
+        popd > /dev/null
+        return 1
+    fi
+
+    popd > /dev/null
+    log "Black Duck scan finished."
+}
+
 # Main function
 main() {
     log "Starting busybox build process"
@@ -336,6 +378,7 @@ main() {
     log "  - Skip existing: ${SKIP_EXISTING}"
     log "  - Reinit config: ${REINIT_CONFIG}"
     log "  - Force rebuild: ${FORCE_REBUILD}"
+    log "  - Black Duck Scan: ${BLACKDUCK_SCAN}"
 
     validate_prerequisites
     setup_directories
@@ -358,6 +401,13 @@ main() {
         if [[ $BUILD_ARM64 -eq 1 ]]; then
             build_busybox "arm64" "$BUSYBOX_ARM_FULL_BUILD" "$BUSYBOX_ARM_FULL_OUT" "aarch64-linux-gnu-" 1
         fi
+    fi
+
+    # Run Blackduck scan if enabled
+    if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $BUILD_AMD64 -eq 1 ]]; then
+        run_blackduck_scan
+    elif [[ $BLACKDUCK_SCAN -eq 1 ]]; then
+        log "Skipping Black Duck scan as amd64 build was not requested."
     fi
 
     log "Build complete!"

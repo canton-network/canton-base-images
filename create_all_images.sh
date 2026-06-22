@@ -7,6 +7,20 @@
 
 set -euo pipefail
 
+BLACKDUCK_SCAN=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --blackduck-scan)
+            BLACKDUCK_SCAN=1
+            shift
+            ;;
+        *)
+            # Pass through other arguments
+            shift
+            ;;
+    esac
+done
+
 BLACKDUCK_SCAN_ARGS=()
 if [[ $BLACKDUCK_SCAN -eq 1 ]]; then
     BLACKDUCK_SCAN_ARGS+=("--blackduck-scan")

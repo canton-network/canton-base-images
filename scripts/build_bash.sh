@@ -41,6 +41,7 @@ BUILD_AMD64=1
 BUILD_ARM64=1
 VERBOSE=0
 FORCE_REBUILD=0
+BLACKDUCK_SCAN=0
 
 # Cleanup function for error handling
 cleanup() {
@@ -66,6 +67,7 @@ OPTIONS:
     --amd64-only        Build only amd64 architecture
     --arm64-only        Build only arm64 architecture
     --verbose           Show build output (default: send to log files)
+    --blackduck-scan    Run Black Duck scan on the build output (amd64 only)
     -h, --help          Show this help message
 
 PREREQUISITES:
@@ -122,6 +124,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --verbose)
             VERBOSE=1
+            shift
+            ;;
+        --blackduck-scan)
+            BLACKDUCK_SCAN=1
             shift
             ;;
         -h|--help)
@@ -277,6 +283,35 @@ build_arch() {
     log "Successfully built bash for ${arch}"
 }
 
+run_blackduck_scan() {
+    log "Starting Black Duck scan for bash..."
+
+    if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
+        error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
+        exit 1
+    fi
+
+    if [[ ! -d "$BASH_X86_OUT" ]]; then
+        error "amd64 output directory not found: $BASH_X86_OUT"
+        error "Please build for amd64 first."
+        return 1
+    fi
+
+    log "Changing to directory: $BASH_X86_OUT"
+    pushd "$BASH_X86_OUT" > /dev/null
+
+    log "Running Synopsys Detect for autonomous scan..."
+    
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "bash" --detect.autonomous.scan.enabled=true; then
+        error "Black Duck scan failed."
+        popd > /dev/null
+        return 1
+    fi
+
+    popd > /dev/null
+    log "Black Duck scan finished."
+}
+
 # Main function
 main() {
     log "Starting bash build process"
@@ -287,6 +322,7 @@ main() {
     log "  - Clean build: ${CLEAN_BUILD}"
     log "  - Skip existing: ${SKIP_EXISTING}"
     log "  - Force rebuild: ${FORCE_REBUILD}"
+    log "  - Black Duck Scan: ${BLACKDUCK_SCAN}"
 
     validate_prerequisites
     setup_directories
@@ -301,11 +337,14 @@ main() {
         build_arch "arm64" "$BASH_ARM_BUILD" "$BASH_ARM_OUT" "aarch64-linux-gnu"
     fi
 
-    log "Build complete!"
-    log "Output locations:"
-    [[ $BUILD_AMD64 -eq 1 ]] && log "  - AMD64: ${BASH_X86_OUT}"
-    [[ $BUILD_ARM64 -eq 1 ]] && log "  - ARM64: ${BASH_ARM_OUT}"
-    [[ $VERBOSE -eq 0 ]] && log "Build logs saved to: ${LOG_DIR}"
+    # Run Blackduck scan if enabled
+    if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $BUILD_AMD64 -eq 1 ]]; then
+        run_blackduck_scan
+    elif [[ $BLACKDUCK_SCAN -eq 1 ]]; then
+        log "Skipping Black Duck scan as amd64 build was not requested."
+    fi
+
+    log "Bash build process finished successfully"
 }
 
 # Run main function
