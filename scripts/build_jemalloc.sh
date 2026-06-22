@@ -273,7 +273,7 @@ run_blackduck_scan() {
 
     log "Running Synopsys Detect for autonomous scan..."
     
-    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "jemalloc" --detect.autonomous.scan.enabled=true; then
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "jemalloc-$JEMALLOC_VERSION" --detect.autonomous.scan.enabled=true; then
         error "Black Duck scan failed."
         popd > /dev/null
         return 1

@@ -116,7 +116,7 @@ fi
 # Get artifact details from artifacts.json
 get_artifact_info() {
     local app_name_upper
-    app_name_upper=$(echo "$1" | tr '[:lower:]' '[:upper:]')
+    app_name_upper=$(echo "$1" | tr '[:lower:]' '[:upper:]' | sed 's/-/_/g')
     local arch_suffix
     if [[ "$2" == "amd64" ]]; then
         arch_suffix="X86_NAME"
@@ -126,16 +126,28 @@ get_artifact_info() {
     jq -r ".SOURCE.${app_name_upper}.${arch_suffix}" artifacts.json
 }
 
+get_version_info() {
+    local app_name_upper
+    app_name_upper=$(echo "$1" | tr '[:lower:]' '[:upper:]' | sed 's/-/_/g')
+    jq -r ".SOURCE.${app_name_upper}.VERSION" artifacts.json
+}
+
 ARTIFACT_NAME=$(get_artifact_info "$APPLICATION_NAME" "$TARGET_ARCH")
+ARTIFACT_VERSION=$(get_version_info "$APPLICATION_NAME")
 
 if [[ -z "$ARTIFACT_NAME" || "$ARTIFACT_NAME" == "null" ]]; then
     die "Could not find artifact name for ${APPLICATION_NAME} and architecture ${TARGET_ARCH} in artifacts.json"
 fi
 
+if [[ -z "$ARTIFACT_VERSION" || "$ARTIFACT_VERSION" == "null" ]]; then
+    log "Version for ${APPLICATION_NAME} not found in artifacts.json, using only application name for scan."
+    ARTIFACT_VERSION=""
+fi
+
 readonly SOURCE_FILE="${SOURCE_DIR}/${ARTIFACT_NAME}"
 readonly OUTPUT_DIR="${BUILD_DIR}/${APPLICATION_NAME}_${TARGET_ARCH}_out"
 
-log "Processing ${APPLICATION_NAME} for ${TARGET_ARCH}"
+log "Processing ${APPLICATION_NAME} version ${ARTIFACT_VERSION} for ${TARGET_ARCH}"
 log "Source archive: ${SOURCE_FILE}"
 log "Output directory: ${OUTPUT_DIR}"
 
@@ -176,7 +188,11 @@ esac
 log "Unpacking complete."
 
 run_blackduck_scan() {
-    log "Starting Black Duck scan for ${APPLICATION_NAME}..."
+    local scan_project_name="${APPLICATION_NAME}"
+    if [[ -n "$ARTIFACT_VERSION" ]]; then
+        scan_project_name="${APPLICATION_NAME}-${ARTIFACT_VERSION}"
+    fi
+    log "Starting Black Duck scan for ${scan_project_name}..."
 
     if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
         error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
@@ -193,7 +209,7 @@ run_blackduck_scan() {
 
     log "Running Synopsys Detect for autonomous scan..."
     
-    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "$APPLICATION_NAME" --detect.autonomous.scan.enabled=true; then
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "$scan_project_name" --detect.autonomous.scan.enabled=true; then
         error "Black Duck scan failed."
         popd > /dev/null
         return 1

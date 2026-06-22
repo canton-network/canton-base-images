@@ -302,7 +302,7 @@ run_blackduck_scan() {
 
     log "Running Synopsys Detect for autonomous scan..."
     
-    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "bash" --detect.autonomous.scan.enabled=true; then
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "bash-$BASH_VERSION" --detect.autonomous.scan.enabled=true; then
         error "Black Duck scan failed."
         popd > /dev/null
         return 1
@@ -345,6 +345,12 @@ main() {
     fi
 
     log "Bash build process finished successfully"
+
+    log "Build complete!"
+    log "Output locations:"
+    [[ $BUILD_AMD64 -eq 1 ]] && log "  - AMD64: ${BASH_X86_OUT}"
+    [[ $BUILD_ARM64 -eq 1 ]] && log "  - ARM64: ${BASH_ARM_OUT}"
+    [[ $VERBOSE -eq 0 ]] && log "Build logs saved to: ${LOG_DIR}"
 }
 
 # Run main function
