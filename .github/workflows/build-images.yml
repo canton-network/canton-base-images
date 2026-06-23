@@ -3,6 +3,25 @@ name: Build and Push Variant Images
 on:
   repository_dispatch:
     types: [build-images]
+  workflow_dispatch:
+    inputs:
+      variants:
+        description: 'Comma-separated list of variants to build'
+        required: true
+        default: 'minimal,base,jdk,full,node'
+      platforms:
+        description: 'Comma-separated list of platforms to build for'
+        required: true
+        default: 'linux/amd64,linux/arm64'
+      upload_sarif:
+        description: 'Upload SARIF reports'
+        required: false
+        default: 'false'
+      blackduck_scan:
+        description: 'Run Black Duck scan'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: read
@@ -25,43 +44,34 @@ jobs:
       VARIANTS: ${{ inputs.variants || 'minimal,base,jdk,full,node' }}
       PLATFORMS: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
       UPLOAD_SARIF: ${{ inputs.upload_sarif || 'false' }}
+      BLACKDUCK_SCAN: ${{ inputs.blackduck_scan || 'false' }}
 
     steps:
-      - name: "DEBUG: Display payload and exit"
-        run: |
-          echo "Workflow triggered successfully by repository_dispatch."
-          echo "Commit SHA from payload: ${{ github.event.client_payload.sha }}"
-          echo "Full event payload: ${{ toJSON(github.event.client_payload) }}"
-          echo "Exiting job for debugging purposes."
-          exit 0
-      # - name: Free Disk Space (Ubuntu)
-      #   uses: jlumbroso/free-disk-space@main
-      #   with:
-      #     # this might remove tools that are actually needed,
-      #     # if set to "true" but frees about 6 GB
-      #     tool-cache: false
-      #     
-      #     # all of these default to true, but feel free to set to
-      #     # "false" if necessary for your workflow
-      #     android: true
-      #     dotnet: true
-      #     haskell: true
-      #     large-packages: true
-      #     docker-images: true
-      #     swap-storage: true     - 
-
       - name: Checkout canton-network/canton-base-image
         uses: actions/checkout@v4
         with:
           repository: canton-network/canton-base-image
           ref: ${{ github.event.client_payload.sha }}
 
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Download all dependencies
+        run: ./download_all.sh
+
+      - name: Build all components and run Black Duck scan
+        if: env.BLACKDUCK_SCAN == 'true'
+        run: ./build_all.sh --blackduck-scan
+        env:
+          DA_BLACKDUCK: ${{ secrets.DA_BLACKDUCK }}
+
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
         with:
           gh-cli-version: 2.65.0
 
-      
       - name: install gcloud
         uses: 'google-github-actions/setup-gcloud@v2'
         with:

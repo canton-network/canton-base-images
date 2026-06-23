@@ -194,10 +194,16 @@ run_blackduck_scan() {
     fi
     log "Starting Black Duck scan for ${scan_project_name}..."
 
+    if [[ -n "${DA_BLACKDUCK:-}" ]]; then
+        export BLACKDUCK_HUBDETECT_TOKEN="${DA_BLACKDUCK}"
+    fi
+
     if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
         error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
         exit 1
     fi
+
+    local project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
 
     if [[ ! -d "$OUTPUT_DIR" ]]; then
         error "Output directory not found: $OUTPUT_DIR"
@@ -209,7 +215,7 @@ run_blackduck_scan() {
 
     log "Running Synopsys Detect for autonomous scan..."
     
-    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "$scan_project_name" --detect.autonomous.scan.enabled=true; then
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$project_name" "$scan_project_name" --detect.autonomous.scan.enabled=true; then
         error "Black Duck scan failed."
         popd > /dev/null
         return 1

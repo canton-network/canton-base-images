@@ -319,10 +319,16 @@ validate_output() {
 run_blackduck_scan() {
     log "Starting Black Duck scan for tzdb..."
 
+    if [[ -n "${DA_BLACKDUCK:-}" ]]; then
+        export BLACKDUCK_HUBDETECT_TOKEN="${DA_BLACKDUCK}"
+    fi
+
     if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
         error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
         exit 1
     fi
+
+    local project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
 
     if [[ ! -d "$TZDB_OUT" ]]; then
         error "Output directory not found: $TZDB_OUT"
@@ -335,7 +341,7 @@ run_blackduck_scan() {
 
     log "Running Synopsys Detect for autonomous scan..."
     
-    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$BLACKDUCK_PROJECT_NAME" "tzdb-${TZDB_VERSION}" --detect.autonomous.scan.enabled=true; then
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$project_name" "tzdb-${TZDB_VERSION}" --detect.autonomous.scan.enabled=true; then
         error "Black Duck scan failed."
         popd > /dev/null
         return 1
