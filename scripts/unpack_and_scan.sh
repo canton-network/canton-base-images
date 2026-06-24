@@ -194,10 +194,6 @@ run_blackduck_scan() {
     fi
     log "Starting Black Duck scan for ${scan_project_name}..."
 
-    if [[ -n "${DA_BLACKDUCK:-}" ]]; then
-        export BLACKDUCK_HUBDETECT_TOKEN="${DA_BLACKDUCK}"
-    fi
-
     if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
         error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
         exit 1
