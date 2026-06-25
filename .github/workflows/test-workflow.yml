@@ -1,0 +1,34 @@
+name: Test Work Flow
+
+on:
+  pull_request:
+    branches:
+      - release-test*
+      - master
+
+jobs:
+  trigger-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "DEBUG: Log event context"
+        run: echo "${{ toJSON(github.event) }}"
+      - name: Trigger build in dach-ny/da-base-images
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          script: |
+            const payload = {
+              sha: context.payload.pull_request?.head.sha || context.sha,
+              ref: context.payload.pull_request?.head.ref || context.ref,
+              repo: context.payload.pull_request?.head.repo.full_name || context.repository,
+              event_name: context.eventName,
+              pull_request: context.payload.pull_request
+            };
+            console.log("Send Context:", context);
+            console.log("Sending payload:", payload);
+            await github.rest.repos.createDispatchEvent({
+              owner: 'dach-ny',
+              repo: 'da-base-images',
+              event_type: 'build-ustable-image',
+              client_payload: payload
+            });
