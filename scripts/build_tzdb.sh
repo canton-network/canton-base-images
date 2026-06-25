@@ -37,6 +37,7 @@ SKIP_EXISTING=0
 VERBOSE=0
 INCLUDE_LEAPSECONDS=0
 FORCE_REBUILD=0
+BLACKDUCK_SCAN=0
 
 # Cleanup function for error handling
 cleanup() {
@@ -60,6 +61,7 @@ OPTIONS:
     --skip-existing     Skip build if output directory already exists
     --with-leapseconds  Include leap-second aware zones (right/ directory)
     --verbose, -v       Enable verbose output
+    --blackduck-scan    Run Black Duck scan on the build output
     --help, -h          Show this help message
 
 DESCRIPTION:
@@ -148,6 +150,10 @@ parse_args() {
                 ;;
             --verbose|-v)
                 VERBOSE=1
+                shift
+                ;;
+            --blackduck-scan)
+                BLACKDUCK_SCAN=1
                 shift
                 ;;
             --help|-h)
@@ -310,6 +316,41 @@ validate_output() {
     fi
 }
 
+run_blackduck_scan() {
+    log "Starting Black Duck scan for tzdb..."
+
+    if [[ -n "${DA_BLACKDUCK:-}" ]]; then
+        export BLACKDUCK_HUBDETECT_TOKEN="${DA_BLACKDUCK}"
+    fi
+
+    if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
+        error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
+        exit 1
+    fi
+
+    local project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
+
+    if [[ ! -d "$TZDB_OUT" ]]; then
+        error "Output directory not found: $TZDB_OUT"
+        error "Please build first."
+        return 1
+    fi
+
+    log "Changing to directory: $TZDB_OUT"
+    pushd "$TZDB_OUT" > /dev/null
+
+    log "Running Synopsys Detect for autonomous scan..."
+    
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$project_name" "tzdb-${TZDB_VERSION}" --detect.autonomous.scan.enabled=true; then
+        error "Black Duck scan failed."
+        popd > /dev/null
+        return 1
+    fi
+
+    popd > /dev/null
+    log "Black Duck scan finished."
+}
+
 # Main build function
 build_tzdb() {
     log "Starting tzdb build (version ${TZDB_VERSION})..."
@@ -346,6 +387,11 @@ build_tzdb() {
     # Record current version
     echo "${TZDB_VERSION}" > "${VERSION_STAMP}"
 
+    # Run Blackduck scan if enabled
+    if [[ $BLACKDUCK_SCAN -eq 1 ]]; then
+        run_blackduck_scan
+    fi
+
     log "Timezone database build complete: ${TZDB_OUT}"
     log "To use in rootfs: cp -r ${TZDB_OUT}/* /path/to/rootfs/"
 }
@@ -365,6 +411,7 @@ main() {
 
     log "Build completed in ${duration} seconds"
     log "Force rebuild: ${FORCE_REBUILD}"
+    log "Black Duck Scan: ${BLACKDUCK_SCAN}"
 }
 
 main "$@"

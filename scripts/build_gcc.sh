@@ -41,6 +41,7 @@ BUILD_ARM64=1
 CLEAN_BUILD=0
 VERBOSE=0
 JOBS=$(nproc)
+BLACKDUCK_SCAN=0
 
 # Help function
 function show_help() {
@@ -55,6 +56,7 @@ OPTIONS:
     --clean             Clean existing build directories before building
     --verbose           Show build output instead of logging to file
     --jobs N            Number of parallel jobs (default: $(nproc))
+    --blackduck-scan    Run Black Duck scan on the build output (amd64 only)
     -h, --help          Show this help message
 
 PREREQUISITES:
@@ -102,6 +104,10 @@ while [[ $# -gt 0 ]]; do
         --jobs)
             JOBS="$2"
             shift 2
+            ;;
+        --blackduck-scan)
+            BLACKDUCK_SCAN=1
+            shift
             ;;
         -h|--help)
             show_help
@@ -227,12 +233,48 @@ build_arch() {
     log "libstdc++ for ${arch} built successfully in ${out_dir}"
 }
 
+run_blackduck_scan() {
+    log "Starting Black Duck scan for gcc..."
+
+    if [[ -n "${DA_BLACKDUCK:-}" ]]; then
+        export BLACKDUCK_HUBDETECT_TOKEN="${DA_BLACKDUCK}"
+    fi
+
+    if [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
+        error "BLACKDUCK_HUBDETECT_TOKEN environment variable must be set for Black Duck scan"
+        exit 1
+    fi
+
+    local project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
+
+    if [[ ! -d "$GCC_OUT_DIR_AMD64" ]]; then
+        error "amd64 output directory not found: $GCC_OUT_DIR_AMD64"
+        error "Please build for amd64 first."
+        return 1
+    fi
+
+    log "Changing to directory: $GCC_OUT_DIR_AMD64"
+    pushd "$GCC_OUT_DIR_AMD64" > /dev/null
+
+    log "Running Synopsys Detect for autonomous scan..."
+    
+    if ! bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$project_name" "gcc-${GCC_VERSION}" --detect.autonomous.scan.enabled=true; then
+        error "Black Duck scan failed."
+        popd > /dev/null
+        return 1
+    fi
+
+    popd > /dev/null
+    log "Black Duck scan finished."
+}
+
 # Main function
 main() {
     log "Starting libstdc++ build process"
     log "Architectures: AMD64=${BUILD_AMD64}, ARM64=${BUILD_ARM64}"
     log "Jobs: $JOBS"
     log "Verbose: $VERBOSE"
+    log "Black Duck Scan: ${BLACKDUCK_SCAN}"
 
     validate_prerequisites
     setup_directories
@@ -244,6 +286,13 @@ main() {
 
     if [[ $BUILD_ARM64 -eq 1 ]]; then
         build_arch "arm64"
+    fi
+
+    # Run Blackduck scan if enabled
+    if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $BUILD_AMD64 -eq 1 ]]; then
+        run_blackduck_scan
+    elif [[ $BLACKDUCK_SCAN -eq 1 ]]; then
+        log "Skipping Black Duck scan as amd64 build was not requested."
     fi
 
     log "libstdc++ build complete!"
