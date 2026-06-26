@@ -389,6 +389,11 @@ run_blackduck_scan() {
     local temp_tar_file
     temp_tar_file=$(mktemp)
 
+    log "Pull image if needed"
+    if [[ $PUSH -eq 1 ]]; then
+	docker pull "$image_name"
+    fi
+
     log "Saving image to temporary file: $temp_tar_file"
     if ! docker image save "$image_name" -o "$temp_tar_file"; then
         error "Failed to save docker image to tar file"
