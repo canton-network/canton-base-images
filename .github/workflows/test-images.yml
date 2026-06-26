@@ -32,8 +32,11 @@ jobs:
         variant: [minimal, base, jdk, full]
         platform: [linux/amd64, linux/arm64]
     steps:
-      - name: Checkout
+      - name: Checkout canton-network/canton-base-images
         uses: actions/checkout@v4
+        with:
+          repository: canton-network/canton-base-images
+          ref: ${{ github.event.client_payload.sha }}
 
       - name: install gcloud
         uses: 'google-github-actions/setup-gcloud@v2'
