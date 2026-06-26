@@ -68,12 +68,10 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Build image tag
-        env:
-          RELEASE_STATUS: ${{ startsWith(github.ref, 'refs/heads/release-line') && 'production' || 'beta' }}
         if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
         id: tag
         run: |
-          prefix=$(jq -r ".repositories.$RELEASE_STATUS" artifacts.json)
+          prefix=$(jq -r ".repositories.beta" artifacts.json)
           suffix="${{ inputs.image_tag_suffix }}"
           variant="${{ matrix.variant }}"
           
