@@ -31,6 +31,6 @@ jobs:
             await github.rest.repos.createDispatchEvent({
               owner: 'dach-ny',
               repo: 'da-base-images',
-              event_type: 'build-ustable-image',
+              event_type: 'build-unstable-images',
               client_payload: payload
             });
