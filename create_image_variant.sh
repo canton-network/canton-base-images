@@ -180,9 +180,11 @@ if [[ ${#TAGS[@]} -eq 0 ]]; then
     exit 1
 fi
 
-if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $LOAD -eq 0 ]]; then
-    error "--blackduck-scan requires --load to be specified"
-    exit 1
+if [[ $BLACKDUCK_SCAN -eq 1 ]]; then
+    if [[ ${LOAD:-0} -eq 0 && ${PUSH:-0} -eq 0 ]]; then
+        error "--blackduck-scan requires --load or --push to be specified"
+        exit 1
+    fi
 fi
 
 if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
