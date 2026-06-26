@@ -1,4 +1,4 @@
-name: Test Work Flow
+name: Initiate Build on DACH-NY
 
 on:
   pull_request:
