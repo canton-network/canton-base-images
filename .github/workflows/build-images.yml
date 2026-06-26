@@ -15,7 +15,7 @@ jobs:
       - name: "DEBUG: Log event context"
         run: echo "${{ toJSON(github.event) }}"
       - name: Trigger build in dach-ny/da-base-images
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           script: |
