@@ -32,8 +32,11 @@ jobs:
         variant: [minimal, base, jdk, full]
         platform: [linux/amd64, linux/arm64]
     steps:
-      - name: Checkout
+      - name: Checkout canton-network/canton-base-images
         uses: actions/checkout@v4
+        with:
+          repository: canton-network/canton-base-images
+          ref: ${{ github.event.client_payload.sha }}
 
       - name: install gcloud
         uses: 'google-github-actions/setup-gcloud@v2'
@@ -68,12 +71,10 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Build image tag
-        env:
-          RELEASE_STATUS: ${{ startsWith(github.ref, 'refs/heads/release-line') && 'production' || 'beta' }}
         if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
         id: tag
         run: |
-          prefix=$(jq -r ".repositories.$RELEASE_STATUS" artifacts.json)
+          prefix="europe-docker.pkg.dev/da-images/public-unstable/docker/da-base-image:minimal europe-docker.pkg.dev/da-images/public-unstable/docker/da-base-image"
           suffix="${{ inputs.image_tag_suffix }}"
           variant="${{ matrix.variant }}"
           
