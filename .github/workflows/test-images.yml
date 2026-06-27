@@ -74,7 +74,7 @@ jobs:
         if: steps.check.outputs.test == 'true' && steps.check.outputs.test_platform == 'true'
         id: tag
         run: |
-          prefix=$(jq -r ".repositories.beta" artifacts.json)
+          prefix="europe-docker.pkg.dev/da-images/public-unstable/docker/da-base-image:minimal europe-docker.pkg.dev/da-images/public-unstable/docker/da-base-image"
           suffix="${{ inputs.image_tag_suffix }}"
           variant="${{ matrix.variant }}"
           
