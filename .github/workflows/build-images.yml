@@ -3,8 +3,6 @@ name: Initiate Build on DACH-NY
 on:
   pull_request:
     branches:
-      - release-test*
-      - master
       - release-line*
       - main
 
