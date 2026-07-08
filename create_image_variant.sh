@@ -192,6 +192,8 @@ if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; the
     exit 1
 fi
 
+local project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
+
 if [[ $LOAD -eq 1 ]] && [[ "$(echo "$PLATFORMS" | tr ',' '\n' | wc -l)" -ne 1 ]]; then
     error "Only one architecture can be built when --load is requested"
     exit 1
@@ -402,7 +404,7 @@ run_blackduck_scan() {
     fi
 
     log "Running Synopsys Detect..."
-    bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build $BLACKDUCK_PROJECT_NAME "$image_name" -detect.tools=CONTAINER_SCAN --detect.container.scan.file.path="$temp_tar_file" --detect.tools.excluded=DETECTOR,SIGNATURE_SCAN
+    bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) ci-build "$project_name" "$image_name" -detect.tools=CONTAINER_SCAN --detect.container.scan.file.path="$temp_tar_file" --detect.tools.excluded=DETECTOR,SIGNATURE_SCAN
 
     log "Cleaning up temporary tar file: $temp_tar_file"
     rm -f "$temp_tar_file"
