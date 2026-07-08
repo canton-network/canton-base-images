@@ -1,0 +1,337 @@
+name: Build and Push Variant Images
+
+on:
+  repository_dispatch:
+    types: [build-images]
+  workflow_dispatch:
+    inputs:
+      variants:
+        description: 'Comma-separated list of variants to build'
+        required: true
+        default: 'minimal,base,jdk,full,node'
+      platforms:
+        description: 'Comma-separated list of platforms to build for'
+        required: true
+        default: 'linux/amd64,linux/arm64'
+      upload_sarif:
+        description: 'Upload SARIF reports'
+        required: false
+        default: 'false'
+      blackduck_scan:
+        description: 'Run Black Duck scan'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+concurrency:
+  group: build-images
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: dach-ny-da-base-images
+    outputs:
+      images: ${{ steps.build.outputs.images }}
+      date_tag: ${{ steps.summary.outputs.date_tag }}
+    env:
+      IMAGE_OWNER: ${{ github.repository_owner }}
+      IMAGE_REPO: ${{ github.event.repository.name }}
+      VARIANTS: ${{ inputs.variants || 'minimal,base,jdk,full,node' }}
+      PLATFORMS: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
+      UPLOAD_SARIF: ${{ inputs.upload_sarif || 'false' }}
+      BLACKDUCK_SCAN: ${{ inputs.blackduck_scan || 'false' }}
+
+    steps:
+      - name: Checkout canton-network/canton-base-image
+        uses: actions/checkout@v4
+        with:
+          repository: canton-network/canton-base-image
+          ref: ${{ github.event.client_payload.sha }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Download all dependencies
+        run: ./download_all.sh
+
+      - name: Build all components and run Black Duck scan
+        if: env.BLACKDUCK_SCAN == 'true'
+        run: ./build_all.sh --blackduck-scan
+        env:
+          DA_BLACKDUCK: ${{ secrets.DA_BLACKDUCK }}
+
+      - name: Install GH CLI
+        uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
+        with:
+          gh-cli-version: 2.65.0
+
+      - name: install gcloud
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          project_id: 'da-images'
+
+      - name: Check for existing release on full branches
+        run: |
+          VERSION=$(cat VERSION)
+          TAG="v${VERSION}"
+          echo "Checking for existing release with tag ${TAG}"
+
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "::error::GitHub CLI (gh) is not installed on this runner."
+            exit 1
+          fi
+
+          STATUS=$(gh api -i \
+            "repos/${{ github.repository }}/releases/tags/${TAG}" 2>/dev/null | grep HTTP | awk '{print $2}')
+
+          case "${STATUS}" in
+            200)
+              echo "::error::Release with tag ${TAG} already exists. Aborting build."
+              exit 1
+              ;;
+            404)
+              echo "No existing release found. Proceeding with build."
+              ;;
+            *)
+              echo "::error::Failed to determine whether release ${TAG} exists (HTTP status: ${STATUS:-unknown})."
+              exit 1
+              ;;
+          esac
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: gcloud login
+        run: |
+          mkdir -p "${HOME}/.config/gcloud"
+          echo '${{ secrets.DA_IMAGES }}' >"${HOME}/.config/gcloud_cred.json"
+          gcloud auth activate-service-account --key-file="${HOME}/.config/gcloud_cred.json"
+          gcloud auth configure-docker europe-docker.pkg.dev --quiet
+
+      - name: test gcloud login
+        run: |
+          gcloud auth list
+          gcloud config list project
+
+      - name: Setup date tag
+        id: date
+        run: echo "date=$(date -u +%y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential wget curl git gpg lzip xz-utils ca-certificates \
+            gcc-x86-64-linux-gnu g++-x86-64-linux-gnu \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            bison gawk texinfo pkg-config linux-headers-generic \
+            file rsync unzip tar qemu-user-static proot
+ 
+      - name: Cache sources (src/)
+        uses: actions/cache@v4
+        with:
+          path: src
+          key: ${{ runner.os }}-src-${{ hashFiles('artifacts.json', 'scripts/download_*') }}
+
+      - name: Prepare environment
+        run: |
+          echo "CI=true" >> $GITHUB_ENV
+          echo "GIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "DATE_TAG=${{ steps.date.outputs.date }}" >> $GITHUB_ENV
+          echo "OWNER_LC=$(echo $IMAGE_OWNER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "REPO_LC=$(echo $IMAGE_REPO | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Download sources
+        run: |
+          ./download_all.sh
+
+      - name: Build core components (both arch)
+        run: |
+          ./scripts/build_node.sh
+          ./scripts/build_gcc.sh --jobs $(nproc)
+          ./scripts/build_glibc.sh --jobs $(nproc)
+          ./scripts/build_busybox.sh --jobs $(nproc)
+          ./scripts/build_ncurses.sh --jobs $(nproc)
+          ./scripts/build_bash.sh --jobs $(nproc)
+          ./scripts/build_tzdb.sh
+          ./scripts/build_busybox.sh --full --jobs $(nproc)
+          ./scripts/build_jemalloc.sh --jobs $(nproc)
+          ./scripts/build_libxcrypt.sh --jobs $(nproc)
+          ./scripts/build_screen.sh --jobs $(nproc)
+
+      - name: Create rootfs for all variants
+        run: |
+          IFS=',' read -ra VARS <<< "$VARIANTS"
+          for v in "${VARS[@]}"; do
+            v_trim=$(echo "$v" | xargs)
+            echo "Creating rootfs for variant: $v_trim"
+            ./scripts/create_rootfs.sh --variant "$v_trim"
+          done
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push images per variant
+        id: build
+        timeout-minutes: 60
+        env:
+          RELEASE_STATUS: ${{ startsWith(github.ref, 'refs/heads/release-line') && 'production' || 'beta' }}
+        run: |
+          set -euo pipefail
+          
+          IFS=',' read -ra VARS <<< "$VARIANTS"
+          images=()
+          for v in "${VARS[@]}"; do
+            v_trim=$(echo "$v" | xargs)
+            echo "Building variant: $v_trim"
+            BASE_URL=$(jq -r ".repositories.$RELEASE_STATUS" artifacts.json)
+            IMAGE_BASE="${BASE_URL}:${v_trim}"
+            TAG_DATE="${IMAGE_BASE}-${DATE_TAG}"
+            TAG_VERSION="${IMAGE_BASE}-$(cat VERSION)"
+            TMP_FILE=$(mktemp)
+
+            ./create_image_variant.sh --variant "$v_trim" --digest-output "${TMP_FILE}" --tag "$IMAGE_BASE" --tag "$TAG_DATE" --tag "$TAG_VERSION" --platform "$PLATFORMS" --push
+            images+=("\"${BASE_URL}@`cat ${TMP_FILE}`\"")
+            rm -f "${TMP_FILE}"
+          done
+          echo "images=[$(IFS=,; echo "${images[*]}")]" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+
+      - name: Scan built images with Trivy (HIGH/CRITICAL)
+        env:
+          RELEASE_STATUS: ${{ startsWith(github.ref, 'refs/heads/release-line') && 'production' || 'beta' }}
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra VARS <<< "$VARIANTS"
+          mkdir -p trivy-reports
+          for v in "${VARS[@]}"; do
+            v_trim=$(echo "$v" | xargs)
+            IMAGE_BASE=$(jq -r ".repositories.$RELEASE_STATUS" artifacts.json):${v_trim}
+            TAG_DATE="${IMAGE_BASE}-${DATE_TAG}"
+            echo "Scanning $TAG_DATE"
+            trivy image "$TAG_DATE" \
+              --no-progress \
+              --timeout 10m \
+              --severity HIGH,CRITICAL \
+              --format sarif -o "trivy-reports/${v_trim}.sarif" || true
+            trivy image "$TAG_DATE" \
+              --no-progress \
+              --timeout 10m \
+              --severity HIGH,CRITICAL \
+              --format table -o "trivy-reports/${v_trim}.txt" || true
+          done
+
+      - name: Upload log files as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          retention-days: 5
+          path: |
+            ./build/logs/*
+
+      - name: Decide SARIF upload
+        run: |
+          echo "UPLOAD_SARIF=${UPLOAD_SARIF}"
+          echo "Event: ${{ github.event_name }}"
+
+      - name: Upload Trivy SARIF (minimal)
+        if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/minimal.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-reports/minimal.sarif
+          category: trivy-image-minimal
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF (base)
+        if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/base.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-reports/base.sarif
+          category: trivy-image-base
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF (jdk)
+        if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/jdk.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-reports/jdk.sarif
+          category: trivy-image-jdk
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF (full)
+        if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/full.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-reports/full.sarif
+          category: trivy-image-full
+        continue-on-error: true
+
+      - name: Upload Trivy reports as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports-${{ steps.date.outputs.date }}
+          path: trivy-reports
+
+      - name: Summary
+        id: summary
+        run: |
+          echo "Built variants: $VARIANTS"
+          echo "Date tag: ${DATE_TAG}"
+          echo "Platforms: ${PLATFORMS}"
+          echo "date_tag=${DATE_TAG}" >> "$GITHUB_OUTPUT"
+
+  sign-images:
+    needs: build-and-push
+    if: always() && needs.build-and-push.result == 'success'
+    uses: ./.github/workflows/cosign-sign.yml
+    secrets:
+      workload_identity_provider: ${{ secrets.COSIGN_WORKLOAD_IDENTITY_PROVIDER }}
+      service_account: ${{ secrets.COSIGN_OIDC_SA_EMAIL }}
+      build_service_account_key: ${{ secrets.DA_IMAGES }}
+      signer_account: ${{ secrets.COSIGN_SIGNER_ACCOUNT_EMAIL }}
+    with:
+      image_ref: ${{ needs.build-and-push.outputs.images }}
+
+  test-images:
+    needs: build-and-push
+    if: always() && needs.build-and-push.result == 'success'
+    uses: ./.github/workflows/test-images.yml
+    secrets: inherit  # https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#passing-secrets-to-nested-workflows
+    with:
+      variants: ${{ inputs.variants || 'minimal,base,jdk,full,node' }}
+      image_tag_suffix: ${{ needs.build-and-push.outputs.date_tag || '' }}
+      platforms: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
+
+  create-release:
+    needs: [build-and-push, sign-images]
+    if: success() && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          body: "Release for version ${{ steps.get_version.outputs.VERSION }}"
+          draft: false
+          prerelease: false

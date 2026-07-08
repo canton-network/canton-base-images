@@ -180,9 +180,11 @@ if [[ ${#TAGS[@]} -eq 0 ]]; then
     exit 1
 fi
 
-if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ $LOAD -eq 0 ]]; then
-    error "--blackduck-scan requires --load to be specified"
-    exit 1
+if [[ $BLACKDUCK_SCAN -eq 1 ]]; then
+    if [[ ${LOAD:-0} -eq 0 && ${PUSH:-0} -eq 0 ]]; then
+        error "--blackduck-scan requires --load or --push to be specified"
+        exit 1
+    fi
 fi
 
 if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; then
@@ -386,6 +388,11 @@ run_blackduck_scan() {
 
     local temp_tar_file
     temp_tar_file=$(mktemp)
+
+    log "Pull image if needed"
+    if [[ $PUSH -eq 1 ]]; then
+	docker pull "$image_name"
+    fi
 
     log "Saving image to temporary file: $temp_tar_file"
     if ! docker image save "$image_name" -o "$temp_tar_file"; then
