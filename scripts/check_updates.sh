@@ -21,6 +21,7 @@ Checks upstream sources for newer releases of:
 - TZDB (IANA time zone database)
 - OpenJDK Temurin 21 (Linux x64/aarch64)
 - Tini (GitHub releases)
+- NodeJS (LTS releases)
 
 Exit codes:
   0: No updates found or ran with --json
@@ -150,6 +151,13 @@ check_jemalloc() {
   echo "$tag"
 }
 
+check_node() {
+  local url="https://nodejs.org/dist/index.json"
+  # Get the latest LTS version string, remove the 'v' prefix
+  local latest; latest=$(curl_get "$url" | jq -r '[.[] | select(.lts != false)] | sort_by(.date) | .[-1].version' | sed 's/^v//') || true
+  echo "$latest"
+}
+
 # Perform checks
 declare -A CURRENT LATEST URLS TYPE
 URLS[busybox]="https://busybox.net/downloads/"
@@ -163,6 +171,7 @@ URLS[grpc_health_probe]="https://github.com/grpc-ecosystem/grpc-health-probe/rel
 URLS[cacert]="https://curl.se/docs/caextract.html"
 URLS[screen]="https://ftp.gnu.org/gnu/screen/"
 URLS[jemalloc]="https://github.com/jemalloc/jemalloc/releases"
+URLS[node]="https://nodejs.org/dist/"
 
 CURRENT[busybox]="$BUSYBOX_VERSION"
 CURRENT[glibc]="$GLIBC_VERSION"
@@ -175,6 +184,7 @@ CURRENT[grpc_health_probe]="$GRPC_HEALTH_PROBE_VERSION"
 CURRENT[cacert]="$CACERT_VERSION"
 CURRENT[screen]="$SCREEN_VERSION"
 CURRENT[jemalloc]="$JEMALLOC_VERSION"
+CURRENT[node]="$NODEJS_VERSION"
 
 LATEST[busybox]=$(check_busybox || true)
 LATEST[glibc]=$(check_glibc || true)
@@ -187,6 +197,7 @@ LATEST[grpc_health_probe]=$(check_grpc_health_probe || true)
 LATEST[cacert]=$(check_cacert || true)
 LATEST[screen]=$(check_screen || true)
 LATEST[jemalloc]=$(check_jemalloc || true)
+LATEST[node]=$(check_node || true)
 
 # Normalize Tini to include leading v for output consistency
 if [[ -n ${LATEST[tini]} ]]; then LATEST[tini]="${LATEST[tini]}"; fi
@@ -196,7 +207,7 @@ updates_found=0
 if [[ $JSON -eq 1 ]]; then
   printf '{"components":{'
   first=1
-  for k in busybox glibc ncurses bash tzdb openjdk tini grpc_health_probe cacert screen jemalloc; do
+  for k in busybox glibc ncurses bash tzdb openjdk tini grpc_health_probe cacert screen jemalloc node; do
     cur=${CURRENT[$k]:-}
     lat=${LATEST[$k]:-}
     url=${URLS[$k]}
@@ -222,7 +233,7 @@ if [[ $JSON -eq 1 ]]; then
   exit 0
 else
   printf "%-20s\t%-10s\t%-10s\t%-10s\t%-10s\n" "Component" "Current" "Latest" "Update"  "URL"
-  for k in busybox glibc ncurses bash tzdb openjdk tini grpc_health_probe cacert screen jemalloc; do
+  for k in busybox glibc ncurses bash tzdb openjdk tini grpc_health_probe cacert screen jemalloc node; do
     cur=${CURRENT[$k]:-}
     lat=${LATEST[$k]:-}
     url=${URLS[$k]}

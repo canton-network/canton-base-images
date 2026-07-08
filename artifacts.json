@@ -60,10 +60,10 @@
       "KEYID": "678CE3FEE430311596DB8C16F52E98007594C21D"
     },
     "NODEJS": {
-        "VERSION": "20.11.1",
-        "X86_NAME": "node-v20.11.1-linux-x64.tar.xz",
-        "ARM_NAME": "node-v20.11.1-linux-arm64.tar.xz",
-        "KEYID": "890C08DB8579162FEE0DF9DB8BEAB4DFCF555EF4"
+        "VERSION": "24.18.0",
+        "X86_NAME": "node-v24.18.0-linux-x64.tar.xz",
+        "ARM_NAME": "node-v24.18.0-linux-arm64.tar.xz",
+        "KEYID": "C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C"
     },
     "GCC": {
         "VERSION": "13.2.0",

@@ -5,3 +5,4 @@ build
 .direnv
 **.idea/**
 verify-signature.json
+.envrc.private
