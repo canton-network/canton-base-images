@@ -192,7 +192,7 @@ if [[ $BLACKDUCK_SCAN -eq 1 ]] && [[ -z "${BLACKDUCK_HUBDETECT_TOKEN:-}" ]]; the
     exit 1
 fi
 
-local project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
+project_name="${BLACKDUCK_PROJECT_OVERRIDE:-$BLACKDUCK_PROJECT_NAME}"
 
 if [[ $LOAD -eq 1 ]] && [[ "$(echo "$PLATFORMS" | tr ',' '\n' | wc -l)" -ne 1 ]]; then
     error "Only one architecture can be built when --load is requested"
