@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   build-and-push:
-    runs-on: dach-ny-da-base-images
+    runs-on: canton-network-canton-base-images
     outputs:
       images: ${{ steps.build.outputs.images }}
       date_tag: ${{ steps.summary.outputs.date_tag }}
@@ -316,7 +316,7 @@ jobs:
   create-release:
     needs: [build-and-push, sign-images]
     if: success() && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: canton-network-canton-base-images
     permissions:
       contents: write
     steps:

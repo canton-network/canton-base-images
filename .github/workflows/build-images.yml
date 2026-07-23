@@ -8,7 +8,7 @@ on:
 
 jobs:
   trigger-build:
-    runs-on: ubuntu-latest
+    runs-on: canton-network-canton-base-images
     steps:
       - name: "DEBUG: Log event context"
         run: echo "${{ toJSON(github.event) }}"
