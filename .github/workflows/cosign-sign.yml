@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   sign-images:
-    runs-on: ubuntu-latest
+    runs-on: canton-network-canton-base-images
     permissions:
       contents: read
       security-events: write
