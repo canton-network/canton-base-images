@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: Checkout canton-network/canton-base-image
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
           repository: canton-network/canton-base-image
           ref: ${{ github.event.client_payload.sha }}
@@ -68,7 +68,7 @@ jobs:
           DA_BLACKDUCK: ${{ secrets.DA_BLACKDUCK }}
 
       - name: Install GH CLI
-        uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
+        uses: dev-hanz-ops/install-gh-cli-action@af38ce09b1ec248aeb08eea2b16bbecea9e059f8 # v0.2.1
         with:
           gh-cli-version: 2.65.0
 
@@ -134,7 +134,7 @@ jobs:
             file rsync unzip tar qemu-user-static proot
  
       - name: Cache sources (src/)
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: src
           key: ${{ runner.os }}-src-${{ hashFiles('artifacts.json', 'scripts/download_*') }}
@@ -175,10 +175,10 @@ jobs:
           done
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Build and push images per variant
         id: build
@@ -206,7 +206,7 @@ jobs:
           echo "images=[$(IFS=,; echo "${images[*]}")]" >> "$GITHUB_OUTPUT"
 
       - name: Set up Trivy
-        uses: aquasecurity/setup-trivy@v0.2.6
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
 
       - name: Scan built images with Trivy (HIGH/CRITICAL)
         env:
@@ -233,7 +233,7 @@ jobs:
           done
 
       - name: Upload log files as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: build-logs
           retention-days: 5
@@ -247,7 +247,7 @@ jobs:
 
       - name: Upload Trivy SARIF (minimal)
         if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/minimal.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.37.3
         with:
           sarif_file: trivy-reports/minimal.sarif
           category: trivy-image-minimal
@@ -255,7 +255,7 @@ jobs:
 
       - name: Upload Trivy SARIF (base)
         if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/base.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.37.3
         with:
           sarif_file: trivy-reports/base.sarif
           category: trivy-image-base
@@ -263,7 +263,7 @@ jobs:
 
       - name: Upload Trivy SARIF (jdk)
         if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/jdk.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.37.3
         with:
           sarif_file: trivy-reports/jdk.sarif
           category: trivy-image-jdk
@@ -271,14 +271,14 @@ jobs:
 
       - name: Upload Trivy SARIF (full)
         if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/full.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.37.3
         with:
           sarif_file: trivy-reports/full.sarif
           category: trivy-image-full
         continue-on-error: true
 
       - name: Upload Trivy reports as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: trivy-reports-${{ steps.date.outputs.date }}
           path: trivy-reports
@@ -321,14 +321,14 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
 
       - name: Get version
         id: get_version
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           name: Release v${{ steps.get_version.outputs.VERSION }}
