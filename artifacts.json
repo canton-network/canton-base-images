@@ -6,8 +6,8 @@
         "KEYID": "C9E9416F76E610DBD09D040F47B70C55ACC9965B"
     },
     "GLIBC": {
-        "VERSION": "2.43",
-        "NAME": "glibc-2.43.tar.xz",
+        "VERSION": "2.44",
+        "NAME": "glibc-2.44.tar.xz",
         "KEYID": "FD19E6D31B192EE4DC63EAD3DC2B16215ED5412A"
     },
     "NCURSES": {
@@ -38,16 +38,16 @@
         "KEYID": "0B588DFF0527A9B7"
     },
     "GRPC_HEALTH_PROBE": {
-        "VERSION": "v0.4.52",
+        "VERSION": "v0.4.53",
         "X86_NAME": "grpc-health-probe-amd64",
         "ARM_NAME": "grpc-health-probe-arm64"
     },
     "CACERT": {
-        "VERSION": "2026-05-14"
+        "VERSION": "2026-07-16"
     },
     "SCREEN": {
-      "NAME": "screen-5.0.1.tar.gz",
-      "VERSION": "5.0.1",
+      "NAME": "screen-5.0.2.tar.gz",
+      "VERSION": "5.0.2",
       "KEYID": "7832918905C6D316DFB54313898D726C87C5AFE3"
     },
     "JEMALLOC": {
