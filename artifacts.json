@@ -21,8 +21,8 @@
         "KEYID": "7C0135FB088AAF6C66C650B9BB5869F064EA74AB"
     },
     "TZDB": {
-        "VERSION": "2026b",
-        "NAME": "tzdata2026b.tar.gz",
+        "VERSION": "2026c",
+        "NAME": "tzdata2026c.tar.gz",
         "KEYID": "7E3792A9D8ACF7D633BC1588ED97E90E62AA7E34"
     },
     "OPENJDK": {
