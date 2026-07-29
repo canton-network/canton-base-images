@@ -8,7 +8,10 @@ jobs:
     runs-on: canton-network-canton-base-images
     steps:
       - name: "DEBUG: Log event context"
-        run: echo "${{ toJSON(github.event) }}"
+        env:
+          EVENT_CONTEXT: ${{ toJSON(github.event) }}
+        run: |
+          printf '%s\n' "$EVENT_CONTEXT"
       - name: Trigger build in dach-ny/da-base-images
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         with:
