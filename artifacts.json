@@ -61,9 +61,9 @@
     },
     "NODEJS": {
         "VERSION": "24.19.0",
-        "X86_NAME": "node-v24.18.0-linux-x64.tar.xz",
-        "ARM_NAME": "node-v24.18.0-linux-arm64.tar.xz",
-        "KEYID": "C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C"
+        "X86_NAME": "node-v24.19.0-linux-x64.tar.xz",
+        "ARM_NAME": "node-v24.19.0-linux-arm64.tar.xz",
+        "KEYID": "5BE8A3F6C8A5C01D106C0AD820B1A390B168D356"
     },
     "GCC": {
         "VERSION": "13.2.0",
