@@ -38,7 +38,7 @@
         "KEYID": "0B588DFF0527A9B7"
     },
     "GRPC_HEALTH_PROBE": {
-        "VERSION": "v0.4.53",
+        "VERSION": "v0.4.54",
         "X86_NAME": "grpc-health-probe-amd64",
         "ARM_NAME": "grpc-health-probe-arm64"
     },
@@ -60,7 +60,7 @@
       "KEYID": "678CE3FEE430311596DB8C16F52E98007594C21D"
     },
     "NODEJS": {
-        "VERSION": "24.18.0",
+        "VERSION": "24.19.0",
         "X86_NAME": "node-v24.18.0-linux-x64.tar.xz",
         "ARM_NAME": "node-v24.18.0-linux-arm64.tar.xz",
         "KEYID": "C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C"
