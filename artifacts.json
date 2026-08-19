@@ -43,7 +43,7 @@
         "ARM_NAME": "grpc-health-probe-arm64"
     },
     "CACERT": {
-        "VERSION": "2026-07-16"
+        "VERSION": "2026-08-13"
     },
     "SCREEN": {
       "NAME": "screen-5.0.2.tar.gz",
