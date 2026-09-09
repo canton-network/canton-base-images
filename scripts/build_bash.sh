@@ -247,6 +247,10 @@ build_arch() {
         if [[ $VERBOSE -eq 1 ]]; then
             "${BASH_SOURCE_DIR}/configure" \
 		bash_cv_getcwd_malloc=yes \
+		bash_cv_job_control_missing=present \
+                bash_cv_sys_named_pipes=present \
+                bash_cv_func_sigsetjmp=present \
+                bash_cv_unusable_rtsigs=no \
                 --prefix=/ \
                 --build=$(sh "${BASH_SOURCE_DIR}/support/config.guess") \
                 --without-bash-malloc \
@@ -255,6 +259,10 @@ build_arch() {
             log "  → Log: ${configure_log}"
             "${BASH_SOURCE_DIR}/configure" \
 		bash_cv_getcwd_malloc=yes \
+		bash_cv_job_control_missing=present \
+                bash_cv_sys_named_pipes=present \
+                bash_cv_func_sigsetjmp=present \
+                bash_cv_unusable_rtsigs=no \
                 --prefix=/ \
                 --build=$(sh "${BASH_SOURCE_DIR}/support/config.guess") \
                 --without-bash-malloc \
