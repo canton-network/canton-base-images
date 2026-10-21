@@ -44,7 +44,7 @@ cleanup() {
         # Clean up partial downloads
         [[ -f "${SOURCE_DIR}/${NODEJS_X86_NAME}.tmp" ]] && rm -f "${SOURCE_DIR}/${NODEJS_X86_NAME}.tmp"
         [[ -f "${SOURCE_DIR}/${NODEJS_ARM_NAME}.tmp" ]] && rm -f "${SOURCE_DIR}/${NODEJS_ARM_NAME}.tmp"
-        [[ -f "${SOURCE_DIR}/SHASUMS256.txt.tmp" ]] && rm -f "${SOURCE_DIR}/SHASUMS256.txt.tmp"
+        rm -f "${SOURCE_DIR}/SHASUMS256-v${NODEJS_VERSION}.txt.tmp" "${SOURCE_DIR}/SHASUMS256-v${NODEJS_VERSION}.txt.sig.tmp"
     fi
 }
 trap cleanup EXIT
@@ -280,8 +280,8 @@ download_arch() {
 
 # Main download function
 download_nodejs() {
-    local checksum_file="${SOURCE_DIR}/SHASUMS256.txt"
-    local sig_file="${SOURCE_DIR}/SHASUMS256.txt.sig"
+    local checksum_file="${SOURCE_DIR}/node-v${NODEJS_VERSION}-SHASUMS256.txt"
+    local sig_file="${checksum_file}.sig"
 
     # Download checksum and signature files
     if [[ $FORCE_DOWNLOAD -eq 1 ]] || [[ ! -f "$checksum_file" ]]; then
