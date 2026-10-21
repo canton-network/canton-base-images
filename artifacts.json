@@ -22,7 +22,7 @@
     },
     "TZDB": {
         "VERSION": "2026e",
-        "NAME": "tzdata2026c.tar.gz",
+        "NAME": "tzdata2026e.tar.gz",
         "KEYID": "7E3792A9D8ACF7D633BC1588ED97E90E62AA7E34"
     },
     "OPENJDK": {
@@ -38,12 +38,12 @@
         "KEYID": "0B588DFF0527A9B7"
     },
     "GRPC_HEALTH_PROBE": {
-        "VERSION": "v0.4.59",
+        "VERSION": "v0.4.60",
         "X86_NAME": "grpc-health-probe-amd64",
         "ARM_NAME": "grpc-health-probe-arm64"
     },
     "CACERT": {
-        "VERSION": "2026-09-25"
+        "VERSION": "2026-10-20"
     },
     "SCREEN": {
       "NAME": "screen-5.0.2.tar.gz",
@@ -60,9 +60,9 @@
       "KEYID": "678CE3FEE430311596DB8C16F52E98007594C21D"
     },
     "NODEJS": {
-        "VERSION": "24.21.0",
-        "X86_NAME": "node-v24.21.0-linux-x64.tar.xz",
-        "ARM_NAME": "node-v24.21.0-linux-arm64.tar.xz",
+        "VERSION": "24.22.1",
+        "X86_NAME": "node-v24.22.1-linux-x64.tar.xz",
+        "ARM_NAME": "node-v24.22.1-linux-arm64.tar.xz",
         "KEYID": "5BE8A3F6C8A5C01D106C0AD820B1A390B168D356"
     },
     "GCC": {
