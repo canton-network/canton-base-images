@@ -65,6 +65,11 @@ bash ./create_image_variant.sh --variant jdk --tag "${local_repo}:jdk-${version}
 bash ./scripts/test_image.sh --variant jdk --tag "${local_repo}:jdk-latest"
 bash ./scripts/validate_sbom.sh "${local_repo}:jdk-latest"
 
+bash ./scripts/create_rootfs.sh --variant node --sbom-version 1 --clean --image-version "$version"
+bash ./create_image_variant.sh --variant node --tag "${local_repo}:node-${version}" --tag "${local_repo}:node-latest" --tag "${local_repo}:node-${timestamp}" --platform "$local_platform" --load "${BLACKDUCK_SCAN_ARGS[@]}"
+bash ./scripts/test_image.sh --variant node --tag "${local_repo}:node-latest"
+bash ./scripts/validate_sbom.sh "${local_repo}:node-latest"
+
 bash ./scripts/create_rootfs.sh --variant full --sbom-version 1 --clean --image-version "$version"
 bash ./create_image_variant.sh --variant full --tag "${local_repo}:full-${version}" --tag "${local_repo}:full-latest" --tag "${local_repo}:full-${timestamp}" --platform "$local_platform" --load "${BLACKDUCK_SCAN_ARGS[@]}"
 bash ./scripts/test_image.sh --variant full --tag "${local_repo}:full-latest"
