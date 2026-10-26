@@ -28,6 +28,10 @@ readonly SCRIPT_NAME="${BASH_SOURCE[0]##*/}"
 readonly VARIANTS_CONFIG_FILE="${WORK_DIR}/config/variants.json"
 readonly HOST_ARCH=$(uname -m)
 
+# proot's seccomp acceleration makes the guest segfault on newer kernels/glibc
+# (seen on Ubuntu 26.04); fall back to plain ptrace tracing.
+export PROOT_NO_SECCOMP=1
+
 # Variant definitions
 declare -A VARIANTS
 while IFS='=' read -r key value; do
@@ -959,7 +963,7 @@ configure_system() {
             else
                 c_localedef_cmd="proot -w /root/ -r \"${rootfs_dir}\" ${c_localedef_cmd}"
             fi
-
+            
             if eval "${c_localedef_cmd}"; then
                 log "Successfully generated C.UTF-8 locale."
             else

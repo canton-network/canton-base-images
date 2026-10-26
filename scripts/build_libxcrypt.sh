@@ -221,11 +221,13 @@ build_arch() {
         if [[ $VERBOSE -eq 1 ]]; then
             "${LIBXCRYPT_SOURCE_DIR}/configure" \
                 --prefix=/usr \
+                --disable-werror \
                 --host="${host}"
         else
             log "  → Log: ${configure_log}"
             "${LIBXCRYPT_SOURCE_DIR}/configure" \
                 --prefix=/usr \
+                --disable-werror \
                 --host="${host}" > "$configure_log" 2>&1
         fi
     fi

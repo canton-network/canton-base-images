@@ -250,13 +250,13 @@ build_arch() {
 
     log "Compiling screen for ${arch} (using ${BUILD_JOBS} jobs)..."
     if [[ $VERBOSE -eq 1 ]]; then
-        # Fix CPPFLAGS to include srcdir for source files
-        sed -i 's/CPPFLAGS =/CPPFLAGS = -I\$(srcdir)/' Makefile
+        # Use -iquote (not -I) for srcdir so screen's own pty.h doesn't shadow <pty.h>
+        sed -i 's/^CPPFLAGS = -iquote \$(srcdir) /CPPFLAGS = /; s/^CPPFLAGS = -I\$(srcdir) /CPPFLAGS = /; s/^CPPFLAGS =/CPPFLAGS = -iquote \$(srcdir)/' Makefile
         make -j "$BUILD_JOBS"
     else
         log "  → Log: ${build_log}"
-        # Fix CPPFLAGS to include srcdir for source files
-        sed -i 's/CPPFLAGS =/CPPFLAGS = -I\$(srcdir)/' Makefile
+        # Use -iquote (not -I) for srcdir so screen's own pty.h doesn't shadow <pty.h>
+        sed -i 's/^CPPFLAGS = -iquote \$(srcdir) /CPPFLAGS = /; s/^CPPFLAGS = -I\$(srcdir) /CPPFLAGS = /; s/^CPPFLAGS =/CPPFLAGS = -iquote \$(srcdir)/' Makefile
         make -j "$BUILD_JOBS" > "$build_log" 2>&1
     fi
 

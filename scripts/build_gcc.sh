@@ -204,6 +204,19 @@ build_arch() {
         "--enable-threads=posix"
     )
 
+    # Newer host compilers (e.g. GCC 15 on Ubuntu 26.04) ICE while building the
+    # GCC 13 libstdc++ sources, so pin the compilers to GCC 13.
+    local triple="x86_64-linux-gnu"
+    [[ "$arch" == "arm64" ]] && triple="aarch64-linux-gnu"
+    local cc="${triple}-gcc-13" cxx="${triple}-g++-13"
+    if ! command -v "$cc" &> /dev/null || ! command -v "$cxx" &> /dev/null; then
+        error "Missing ${cc}/${cxx}. Install with: sudo apt-get install gcc-13 g++-13 gcc-13-aarch64-linux-gnu g++-13-aarch64-linux-gnu"
+        return 1
+    fi
+    export CC="$cc" CXX="$cxx" CC_FOR_TARGET="$cc" CXX_FOR_TARGET="$cxx"
+    # Native gcc/g++ (build machine) must also be GCC 13 for amd64 builds
+    export CC_FOR_BUILD="gcc-13" CXX_FOR_BUILD="g++-13"
+
     log "Configuring GCC for ${arch}..."
     if [[ $VERBOSE -eq 1 ]]; then
         "${configure_cmd[@]}"
