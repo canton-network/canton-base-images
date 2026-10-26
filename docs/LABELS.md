@@ -35,7 +35,7 @@ Universal labels that apply to all image variants:
 
 | Label | Description | Example |
 |-------|-------------|---------|
-| `io.digitalasset.image.variant` | Rootfs variant | `full`, `jdk`, `node`, `base`, `minimal` |
+| `io.digitalasset.image.variant` | Rootfs variant | `full`, `jdk`, `node`, `node-slim`, `base`, `minimal` |
 | `io.digitalasset.image.architecture` | Target architecture | `amd64`, `arm64` |
 
 ## Viewing Labels

@@ -28,7 +28,7 @@ Usage: ${SCRIPT_NAME} --variant VARIANT --tag IMAGE_TAG [OPTIONS]
 Run functional tests against a container image variant.
 
 OPTIONS:
-  --variant NAME       Variant to test (minimal, base, jdk, full)
+  --variant NAME       Variant to test (minimal, base, jdk, full, node, node-slim)
   --tag IMAGE_TAG      Docker image tag to test
   --platform PLATFORM  Platform to test (e.g., linux/amd64, linux/arm64)
   --no-fail-fast       Continue testing even after failures
@@ -259,7 +259,19 @@ test_node() {
   run_test_with_output "npm: version" "" /bin/bash -c "npm --version"
   run_test "npm: can install package (express)" /bin/bash -c "npm install express"
   run_test "npm: can install native module (bcrypt)" /bin/bash -c "npm install bcrypt"
+}
 
+# Node slim variant tests (node without npm, npx and corepack)
+test_node_slim() {
+  log "Testing node-slim variant specifics..."
+
+  run_test "node: exists" /bin/bash -c "command -v node"
+  run_test_with_output "node: version" "v" /usr/bin/node --version
+  run_test_with_output "node: executes script" "Hello from Node" /bin/bash -c "node -e 'console.log(\"Hello from Node\")'"
+  run_test "npm: not present" /bin/bash -c "! command -v npm"
+  run_test "npx: not present" /bin/bash -c "! command -v npx"
+  run_test "corepack: not present" /bin/bash -c "! command -v corepack"
+  run_test "npm/corepack modules: not present" /bin/bash -c "[ ! -e /usr/lib/node_modules/npm ] && [ ! -e /usr/lib/node_modules/corepack ]"
 }
 
 # Main test execution
@@ -295,6 +307,10 @@ main() {
     node)
       test_core
       test_node
+      ;;
+    node-slim)
+      test_core
+      test_node_slim
       ;;
     *)
       err "Unknown variant: $VARIANT"
