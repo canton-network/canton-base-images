@@ -96,7 +96,7 @@ This repo integrates Trivy to scan the built images for HIGH/CRITICAL vulnerabil
 
 1. Go to GitHub → Actions → “Scan Images with Trivy” → Run workflow
 2. Inputs:
-	- `variants`: e.g., `minimal,base,jdk,full`
+	- `variants`: e.g., `minimal,base,jdk,full,node,node-slim`
 	- `tag`: optional date suffix to scan a specific build (e.g., `20251106`). Empty uses the rolling tag.
 	- `fail_on_severity`: optional, set to `HIGH,CRITICAL` to fail the run if findings are present.
 	- `upload_sarif`: optional, set to `true` to publish results to Code Scanning.
