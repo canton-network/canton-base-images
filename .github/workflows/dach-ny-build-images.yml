@@ -8,7 +8,7 @@ on:
       variants:
         description: 'Comma-separated list of variants to build'
         required: true
-        default: 'minimal,base,jdk,full,node'
+        default: 'minimal,base,jdk,full,node,node-slim'
       platforms:
         description: 'Comma-separated list of platforms to build for'
         required: true
@@ -41,7 +41,7 @@ jobs:
     env:
       IMAGE_OWNER: ${{ github.repository_owner }}
       IMAGE_REPO: ${{ github.event.repository.name }}
-      VARIANTS: ${{ inputs.variants || 'minimal,base,jdk,full,node' }}
+      VARIANTS: ${{ inputs.variants || 'minimal,base,jdk,full,node,node-slim' }}
       PLATFORMS: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
       UPLOAD_SARIF: ${{ inputs.upload_sarif || 'false' }}
       BLACKDUCK_SCAN: ${{ inputs.blackduck_scan || 'false' }}
@@ -309,7 +309,7 @@ jobs:
     uses: ./.github/workflows/test-images.yml
     secrets: inherit  # https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#passing-secrets-to-nested-workflows
     with:
-      variants: ${{ inputs.variants || 'minimal,base,jdk,full,node' }}
+      variants: ${{ inputs.variants || 'minimal,base,jdk,full,node,node-slim' }}
       image_tag_suffix: ${{ needs.build-and-push.outputs.date_tag || '' }}
       platforms: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
 

@@ -28,6 +28,10 @@ readonly SCRIPT_NAME="${BASH_SOURCE[0]##*/}"
 readonly VARIANTS_CONFIG_FILE="${WORK_DIR}/config/variants.json"
 readonly HOST_ARCH=$(uname -m)
 
+# proot's seccomp acceleration makes the guest segfault on newer kernels/glibc
+# (seen on Ubuntu 26.04); fall back to plain ptrace tracing.
+export PROOT_NO_SECCOMP=1
+
 # Variant definitions
 declare -A VARIANTS
 while IFS='=' read -r key value; do
@@ -96,6 +100,7 @@ VARIANT DETAILS:
     base:     minimal + bash + ncurses + busybox (minimal)
     jdk: base + JDK + tini + tzdb + CA certs
     node:     base + Node.js + tini + tzdb + CA certs
+    node-slim: node without npm, npx and corepack
     full:      jdk with complete libraries and busybox
 
 EOF
@@ -234,7 +239,7 @@ validate_prerequisites() {
         fi
     fi
 
-    if [[ "$VARIANT" == "node" ]]; then
+    if [[ "$VARIANT" == "node" || "$VARIANT" == "node-slim" ]]; then
         # Check Node.js
         if [[ $BUILD_AMD64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${nodejs_map[amd64]}" ]]; then
             missing_components+=("Node.js (amd64)")
@@ -667,10 +672,12 @@ install_jdk() {
         -C "${rootfs_dir}/usr/java/"
 }
 
-# Install Node.js (node variant)
+# Install Node.js (node, node-slim variants). Optional third argument "slim"
+# skips npm, npx and corepack.
 install_node() {
     local rootfs_dir="$1"
     local arch="$2"
+    local flavor="${3:-full}"
 
     jq --arg version "$NODEJS_VERSION" '.components += [{
         "bom-ref": "nodejs",
@@ -691,7 +698,16 @@ install_node() {
 
     log "Installing Node.js for ${arch}..."
     mkdir -p "${rootfs_dir}/usr/"
+    local tar_excludes=()
+    if [[ "$flavor" == "slim" ]]; then
+        tar_excludes=(
+            --wildcards
+            --exclude='*/bin/npm' --exclude='*/bin/npx' --exclude='*/bin/corepack'
+            --exclude='*/lib/node_modules/npm' --exclude='*/lib/node_modules/corepack'
+        )
+    fi
     tar --strip-components=1 -xJf "${SOURCE_DIR}/${nodejs_map[$arch]}" \
+        "${tar_excludes[@]}" \
         -C "${rootfs_dir}/usr"
 }
 
@@ -959,7 +975,7 @@ configure_system() {
             else
                 c_localedef_cmd="proot -w /root/ -r \"${rootfs_dir}\" ${c_localedef_cmd}"
             fi
-
+            
             if eval "${c_localedef_cmd}"; then
                 log "Successfully generated C.UTF-8 locale."
             else
@@ -1062,6 +1078,9 @@ build_rootfs_arch() {
                 ;;
             "install_node")
                 install_node "${rootfs_dir}" "${arch}"
+                ;;
+            "install_node_slim")
+                install_node "${rootfs_dir}" "${arch}" slim
                 ;;
             "install_libstdc++")
                 install_libstdc++ "${rootfs_dir}" "${arch}"

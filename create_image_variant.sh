@@ -37,7 +37,7 @@ Build Docker image with a specific rootfs variant.
 
 OPTIONS:
     --variant NAME       Use specific rootfs variant (default: jdk)
-                         Options: minimal, base, jdk, full, node
+                         Options: minimal, base, jdk, full, node, node-slim
     --tag NAME[,NAME...] Docker image tag(s) (required; comma-separated or repeatable)
     --platform LIST      Target platforms (default: linux/amd64,linux/arm64)
     --amd64-only        Build only amd64 platform
@@ -201,11 +201,11 @@ fi
 
 # Validate variant
 case "$VARIANT" in
-    certs|minimal|base|jdk|full|node)
+    certs|minimal|base|jdk|full|node|node-slim)
         ;;
     *)
         error "Unknown variant: $VARIANT"
-        error "Valid options: minimal, base, jdk, full, node"
+        error "Valid options: minimal, base, jdk, full, node, node-slim"
         exit 1
         ;;
 esac

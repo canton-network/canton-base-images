@@ -65,6 +65,22 @@ This document provides a quick reference to the different base image variants av
     *   `install_node`
     *   `configure_system`
 
+## node-slim
+
+*   **Description**: Same as `node`, but without npm, npx and corepack
+*   **Components**:
+    *   `setup_system_config_files`
+    *   `install_glibc`
+    *   `install_libstdc++`
+    *   `install_ncurses`
+    *   `install_busybox`
+    *   `install_bash`
+    *   `install_ca_certs`
+    *   `install_tzdb`
+    *   `install_tini`
+    *   `install_node_slim`
+    *   `configure_system`
+
 ## full
 
 *   **Description**: Development rootfs with full busybox tools and all components

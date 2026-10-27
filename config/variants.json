@@ -1,7 +1,7 @@
 {
   "variants": {
     "certs": {
-      "sbom" : {
+      "sbom": {
         "serial_number": "c0c6edc6-02bc-4596-9220-423e0f8a9e42"
       },
       "description": "CA certs only",
@@ -13,7 +13,7 @@
       "configure_system_skip_ldconfig": true
     },
     "minimal": {
-      "sbom" : {
+      "sbom": {
         "serial_number": "d1f7e8a1-3b4c-4e5f-8a9b-0c1d2e3f4a5b"
       },
       "description": "Minimal rootfs with glibc and busybox",
@@ -28,7 +28,7 @@
       "use_full": false
     },
     "base": {
-      "sbom" : {
+      "sbom": {
         "serial_number": "e2a3b4c5-d6e7-4890-a1b2-c3d4e5f60718"
       },
       "description": "Base rootfs with glibc, busybox, bash, and ncurses",
@@ -45,7 +45,7 @@
       "use_full": false
     },
     "jdk": {
-      "sbom" : {
+      "sbom": {
         "serial_number": "f3b4c5d6-e7f8-4901-b2c3-d4e5f6071829"
       },
       "description": "jdk rootfs with JDK, tini, and all base components",
@@ -64,7 +64,7 @@
       "use_full": false
     },
     "node": {
-      "sbom" : {
+      "sbom": {
         "serial_number": "a1b2c3d4-e5f6-4789-a0b1-c2d3e4f56789"
       },
       "description": "Node.js rootfs with Node.js, tini, and all base components",
@@ -84,7 +84,7 @@
       "use_full": false
     },
     "full": {
-      "sbom" : {
+      "sbom": {
         "serial_number": "a4b5c6d7-e8f9-4012-c3d4-e5f60718293a"
       },
       "description": "Development rootfs with full busybox tools and all components",
@@ -106,6 +106,26 @@
         "configure_system"
       ],
       "use_full": true
+    },
+    "node-slim": {
+      "sbom": {
+        "serial_number": "9f368746-77ec-4b0b-bc98-2a8f24b7794d"
+      },
+      "description": "Node.js rootfs without npm, npx and corepack, with tini and all base components",
+      "components": [
+        "setup_system_config_files",
+        "install_glibc",
+        "install_libstdc++",
+        "install_ncurses",
+        "install_busybox",
+        "install_bash",
+        "install_ca_certs",
+        "install_tzdb",
+        "install_tini",
+        "install_node_slim",
+        "configure_system"
+      ],
+      "use_full": false
     }
   }
 }
