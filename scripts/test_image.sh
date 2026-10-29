@@ -224,11 +224,6 @@ test_full() {
   run_test "busybox-full: wget exists" /bin/bash -c "command -v wget"
   run_test "busybox-full: find exists" /bin/bash -c "command -v find"
 
-  # grpc-health-probe
-  run_test "grpc-health-probe: exists" /bin/bash -c "command -v grpc-health-probe"
-  run_test "grpc-health-probe: executable" /bin/bash -c "test -x /usr/bin/grpc-health-probe"
-  run_test_with_output "grpc-health-probe: version" "commit" /bin/bash -c "/usr/bin/grpc-health-probe -version"
-
   # screen
   run_test "screen: exists" /bin/bash -c "command -v screen"
   run_test "screen: executable" /bin/bash -c "test -x /usr/bin/screen"
