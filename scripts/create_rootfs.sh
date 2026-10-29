@@ -49,11 +49,9 @@ IMAGE_VERSION=""
 # Architecture mappings
 declare -A tini_map
 declare -A jdk_map
-declare -A grpc_health_probe_map
 declare -A nodejs_map
 tini_map=(["amd64"]="tini-amd64" ["arm64"]="tini-arm64")
 jdk_map=(["amd64"]="OpenJDK21U-jdk_x64_linux_hotspot_" ["arm64"]="OpenJDK21U-jdk_aarch64_linux_hotspot_")
-grpc_health_probe_map=(["amd64"]="grpc-health-probe-amd64" ["arm64"]="grpc-health-probe-arm64")
 nodejs_map=(["amd64"]="${NODEJS_X86_NAME}" ["arm64"]="${NODEJS_ARM_NAME}")
 
 # Cleanup function for error handling
@@ -264,13 +262,6 @@ validate_prerequisites() {
         fi
         if [[ $BUILD_ARM64 -eq 1 ]] && [[ ! -d "${BUILD_DIR}/busybox_arm64_full_out" ]]; then
             missing_components+=("busybox-full (arm64)")
-        fi
-        # Check grpcurl
-        if [[ $BUILD_AMD64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${grpc_health_probe_map[amd64]}" ]]; then
-            missing_components+=("grpcurl (amd64)")
-        fi
-        if [[ $BUILD_ARM64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${grpc_health_probe_map[arm64]}" ]]; then
-            missing_components+=("grpcurl (arm64)")
         fi
         if [[ $BUILD_AMD64 -eq 1 ]] && [[ ! -d "${BUILD_DIR}/libxcrypt_amd64_out" ]]; then
             missing_components+=("libxcrypt (amd64)")
@@ -738,32 +729,6 @@ install_tini() {
     chmod +x "${rootfs_dir}/usr/bin/tini"
 }
 
-# Install grpc-health-probe (full variant)
-install_grpc_health_probe() {
-    local rootfs_dir="$1"
-    local arch="$2"
-
-    jq --arg version "$GRPC_HEALTH_PROBE_VERSION" '.components += [{
-        "bom-ref": "grpc-health-probe",
-        "type": "library",
-        "name": "grpc-health-probe",
-        "version": $version,
-        "licenses": [
-        {
-            "license": {
-            "id": "Apache-2.0"
-            }
-        }
-        ],
-        "purl": ("pkg:golang/github.com/grpc-ecosystem/grpc-health-probe@" + $version)
-    }
-    ]' "${rootfs_dir}/etc/sbom.cdx.json" > "${rootfs_dir}/etc/sbom_tmp.json" && mv "${rootfs_dir}/etc/sbom_tmp.json" "${rootfs_dir}/etc/sbom.cdx.json"
-
-    log "Installing grpc-health-probe for ${arch}..."
-    cp "${SOURCE_DIR}/${grpc_health_probe_map[$arch]}" "${rootfs_dir}/usr/bin/grpc-health-probe"
-    chmod +x "${rootfs_dir}/usr/bin/grpc-health-probe"
-}
-
 # Install timezone database (jdk, full variants)
 install_tzdb() {
     local rootfs_dir="$1"
@@ -1087,9 +1052,6 @@ build_rootfs_arch() {
                 ;;
             "install_tini")
                 install_tini "${rootfs_dir}" "${arch}"
-                ;;
-            "install_grpc_health_probe")
-                install_grpc_health_probe "${rootfs_dir}" "${arch}"
                 ;;
             "install_libxcrypt")
                 install_libxcrypt "${rootfs_dir}" "${arch}"

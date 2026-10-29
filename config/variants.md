@@ -68,7 +68,6 @@ This document describes the different container variants available in this proje
 - All components from `jdk`
 - busybox 1.37.0 (full configuration)
 - Additional debugging and development tools
-    - grpc-health-probe CLI (for testing gRPC health checks)
 
 **Use Cases:**
 - Development and debugging containers

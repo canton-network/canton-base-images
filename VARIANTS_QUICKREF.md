@@ -174,11 +174,6 @@ Update your Dockerfile accordingly.
 ./create_image_variant.sh --variant full --tag full:latest
 ```
 
-Includes grpc-health-probe for gRPC health checking:
-```bash
-docker run --rm full:latest grpc-health-probe --help
-```
-
 ### Multi-arch Production Build
 ```bash
 # Create rootfs
