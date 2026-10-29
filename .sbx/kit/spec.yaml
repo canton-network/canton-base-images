@@ -1,0 +1,55 @@
+schemaVersion: "2"
+kind: mixin
+name: canton-base-images-tools
+displayName: Canton base images build tools
+description: Toolchain for building and scanning the canton-base-images rootfs and container images.
+requires:
+  agent: claude
+
+permissions:
+  network:
+    allow:
+      - archive.ubuntu.com
+      - security.ubuntu.com
+      - ports.ubuntu.com
+      - ftp.gnu.org
+      - gnu.mirror.constant.com
+      - busybox.net
+      - curl.se
+      - nodejs.org
+      - adoptium.net
+      - data.iana.org
+      - github.com
+      - api.github.com
+      - raw.githubusercontent.com
+      - objects.githubusercontent.com
+      - release-assets.githubusercontent.com
+      - get.anchore.io
+      - ghcr.io
+      - registry-1.docker.io
+      - auth.docker.io
+      - production.cloudflare.docker.com
+
+setup:
+  install:
+    - description: Build dependencies (mirrors the CI workflow)
+      user: "0"
+      command: >-
+        apt-get update &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends
+        build-essential wget curl git gpg lzip xz-utils ca-certificates
+        gcc-x86-64-linux-gnu g++-x86-64-linux-gnu
+        gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        bison gawk texinfo pkg-config file rsync unzip tar jq
+        qemu-user-static proot direnv &&
+        rm -rf /var/lib/apt/lists/*
+    - description: syft (SBOM generation)
+      user: "0"
+      command: >-
+        command -v syft >/dev/null ||
+        curl -sSfL https://get.anchore.io/syft | sh -s -- -b /usr/local/bin
+    - description: grype (vulnerability scanning)
+      user: "0"
+      command: >-
+        command -v grype >/dev/null ||
+        curl -sSfL https://get.anchore.io/grype | sh -s -- -b /usr/local/bin
