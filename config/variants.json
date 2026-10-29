@@ -99,7 +99,6 @@
         "install_tzdb",
         "install_tini",
         "install_jdk",
-        "install_grpc_health_probe",
         "install_libxcrypt",
         "install_screen",
         "install_jemalloc",

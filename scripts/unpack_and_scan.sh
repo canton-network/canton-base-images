@@ -36,7 +36,7 @@ Usage: ${SCRIPT_NAME} [OPTIONS] <application_name>
 Unpacks pre-built binaries for a given application and optionally runs a Black Duck scan.
 
 ARGUMENTS:
-    application_name    The name of the application to unpack (e.g., node, jdk, tini, grpc-health-probe).
+    application_name    The name of the application to unpack (e.g., node, jdk, tini).
 
 OPTIONS:
     --blackduck-scan    Run Black Duck scan on the unpacked output.
@@ -174,8 +174,8 @@ case "$SOURCE_FILE" in
         unzip -q "$SOURCE_FILE" -d "$OUTPUT_DIR"
         ;;
     *)
-        # For single binaries like tini and grpc-health-probe
-        if [[ "$APPLICATION_NAME" == "tini" || "$APPLICATION_NAME" == "grpc_health_probe" ]]; then
+        # For single binaries like tini
+        if [[ "$APPLICATION_NAME" == "tini" ]]; then
             mkdir -p "${OUTPUT_DIR}/bin"
             cp "$SOURCE_FILE" "${OUTPUT_DIR}/bin/"
             chmod +x "${OUTPUT_DIR}/bin/$(basename "$SOURCE_FILE")"

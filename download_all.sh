@@ -38,9 +38,6 @@ echo "Download Components"
 ## Download Tini
 ./scripts/download_tini.sh
 
-## Download grpc-health-probe (for full variant)
-./scripts/download_grpc-health-probe.sh
-
 ## Download Mozilla CA certificates
 ./scripts/download_cacerts.sh
 

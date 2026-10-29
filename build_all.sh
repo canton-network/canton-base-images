@@ -38,7 +38,6 @@ if [[ -n "$BLACKDUCK_SCAN_FLAG" ]]; then
     ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG nodejs
     ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG openjdk
     ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG tini
-    ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG grpc_health_probe
 fi
 
 ## Build GCC (for libstdc++)
