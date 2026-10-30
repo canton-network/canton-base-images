@@ -32,7 +32,7 @@ jobs:
           # Minimal parsing without jq
           any=false
           table="| Component | Current | Latest | Update |\n|---|---|---|---|\n"
-          for k in busybox glibc ncurses bash tzdb openjdk tini grpc-health-probe cacert; do
+          for k in busybox glibc ncurses bash tzdb openjdk tini cacert; do
             cur=$(grep -o '"'"$k"'":{"current":"[^"]*' updates.json | sed -E 's/.*current":"([^"]*).*/\1/')
             lat=$(grep -o '"'"$k"'":{"current":"[^"]*","latest":"[^"]*' updates.json | sed -E 's/.*latest":"([^"]*).*/\1/')
             upd=$(grep -oE '"'"$k"'":{"current":"[^"]*","latest":"[^"]*","update":(true|false)' updates.json | sed -E 's/.*"update":(true|false).*/\1/')

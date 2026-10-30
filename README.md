@@ -42,6 +42,7 @@ sudo apt-get install openssl  # Required for CA certificate hash generation
 - [Testing](docs/TESTING.md) - Functional test framework
 - [CA Certificates](docs/CA_CERTIFICATES.md) - Certificate management
 - [Image Labels](docs/LABELS.md) - Label annotations and metadata
+- [Docker Sandbox (sbx)](docs/SBX_SANDBOX.md) - AI development environment setup
 - [Trivy Scanning](#image-vulnerability-scanning-trivy) - Security scanning
 
 ### CI/CD and Release Process

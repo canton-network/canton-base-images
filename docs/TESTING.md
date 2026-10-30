@@ -65,7 +65,6 @@ The test script covers the following checks for each variant:
 ### `full`
 - ✓ All `jdk` components.
 - ✓ Full `busybox` with extended tools (`vi`, `wget`, `find`).
-- ✓ `grpcurl` for gRPC testing.
 - ✓ `ldconfig` for library management.
 
 ## GitHub Actions Integration
@@ -175,9 +174,6 @@ Test helper functions:
 ```bash
 # Test bash directly
 docker run --rm myapp:base /usr/bin/bash --version
-
-# Test grpcurl
-docker run --rm myapp:full /usr/bin/grpcurl --help
 
 # Test java
 docker run --rm myapp:standard /usr/java/bin/java -version
