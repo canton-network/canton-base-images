@@ -1,0 +1,11 @@
+schemaVersion: "1"
+name: canton-base-images
+agent: claude
+workspace: .
+
+kits:
+  - ./.sbx/kit
+
+sandboxOptions:
+  cpus: 4
+  memory: 8g

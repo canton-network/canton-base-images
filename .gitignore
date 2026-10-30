@@ -6,3 +6,4 @@ build
 **.idea/**
 verify-signature.json
 .envrc.private
+keys/*
