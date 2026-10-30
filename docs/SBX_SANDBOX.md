@@ -95,6 +95,15 @@ tasks and debugger, while the repository remains bind-mounted at the same absolu
    a terminal, run builds there, and install any requested extensions when prompted
    to install them on the SSH host. Use F5 to launch the debugger remotely as well.
 
+The Claude Code extension (`anthropic.claude-code`) is listed in
+[`.vscode/extensions.json`](../.vscode/extensions.json). In the remote window, accept the
+prompt to install the recommended extension on the SSH host. To install it automatically
+on every sandbox, add this to your VS Code user settings (it can't be set per workspace):
+
+```json
+"remote.SSH.defaultExtensions": ["anthropic.claude-code"]
+```
+
 No ports need to be published for this SSH connection. The sandbox network policy still
 applies to VS Code Server and remote extensions. The VS Code Server and extensions are
 installed in the sandbox; removing and recreating the sandbox removes those installs,
