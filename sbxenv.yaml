@@ -7,5 +7,5 @@ kits:
   - ./.sbx/kit
 
 sandboxOptions:
-  cpus: 4
-  memory: 8g
+  cpus: 12
+  memory: 32g
