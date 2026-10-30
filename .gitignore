@@ -7,3 +7,4 @@ build
 verify-signature.json
 .envrc.private
 keys/*
+.claude/*

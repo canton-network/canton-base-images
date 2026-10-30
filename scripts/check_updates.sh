@@ -118,12 +118,6 @@ check_tini() {
   echo "$tag"
 }
 
-check_grpc_health_probe() {
-  local url="https://api.github.com/repos/grpc-ecosystem/grpc-health-probe/releases/latest"
-  local latest; latest=$(curl_get "$url" | sed -n 's/.*"tag_name": "\([^"]\+\)".*/\1/p') || true
-  echo "$latest"
-}
-
 check_cacert() {
   # The cacert.pem file has a comment at the top with the date
   # Format: "## Certificate data from Mozilla as of: Wed Jan  1 04:12:06 2025 GMT"
@@ -168,7 +162,6 @@ URLS[bash]="https://ftp.gnu.org/gnu/bash/"
 URLS[tzdb]="https://data.iana.org/time-zones/releases/"
 URLS[openjdk]="https://adoptium.net/temurin/releases/?version=21"
 URLS[tini]="https://github.com/krallin/tini/releases"
-URLS[grpc_health_probe]="https://github.com/grpc-ecosystem/grpc-health-probe/releases"
 URLS[cacert]="https://curl.se/docs/caextract.html"
 URLS[screen]="https://ftp.gnu.org/gnu/screen/"
 URLS[jemalloc]="https://github.com/jemalloc/jemalloc/releases"
@@ -181,7 +174,6 @@ CURRENT[bash]="$BASH_VERSION"
 CURRENT[tzdb]="$TZDB_VERSION"
 CURRENT[openjdk]="$OPENJDK_VERSION"
 CURRENT[tini]="${TINI_VERSION#v}"
-CURRENT[grpc_health_probe]="$GRPC_HEALTH_PROBE_VERSION"
 CURRENT[cacert]="$CACERT_VERSION"
 CURRENT[screen]="$SCREEN_VERSION"
 CURRENT[jemalloc]="$JEMALLOC_VERSION"
@@ -194,7 +186,6 @@ LATEST[bash]=$(check_bash || true)
 LATEST[tzdb]=$(check_tzdb || true)
 LATEST[openjdk]=$(adoptium_latest_21 || true)
 LATEST[tini]=$(check_tini || true)
-LATEST[grpc_health_probe]=$(check_grpc_health_probe || true)
 LATEST[cacert]=$(check_cacert || true)
 LATEST[screen]=$(check_screen || true)
 LATEST[jemalloc]=$(check_jemalloc || true)
@@ -208,7 +199,7 @@ updates_found=0
 if [[ $JSON -eq 1 ]]; then
   printf '{"components":{'
   first=1
-  for k in busybox glibc ncurses bash tzdb openjdk tini grpc_health_probe cacert screen jemalloc node; do
+  for k in busybox glibc ncurses bash tzdb openjdk tini cacert screen jemalloc node; do
     cur=${CURRENT[$k]:-}
     lat=${LATEST[$k]:-}
     url=${URLS[$k]}
@@ -234,7 +225,7 @@ if [[ $JSON -eq 1 ]]; then
   exit 0
 else
   printf "%-20s\t%-10s\t%-10s\t%-10s\t%-10s\n" "Component" "Current" "Latest" "Update"  "URL"
-  for k in busybox glibc ncurses bash tzdb openjdk tini grpc_health_probe cacert screen jemalloc node; do
+  for k in busybox glibc ncurses bash tzdb openjdk tini cacert screen jemalloc node; do
     cur=${CURRENT[$k]:-}
     lat=${LATEST[$k]:-}
     url=${URLS[$k]}
