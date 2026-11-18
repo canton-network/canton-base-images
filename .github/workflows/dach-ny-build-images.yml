@@ -8,7 +8,7 @@ on:
       variants:
         description: 'Comma-separated list of variants to build'
         required: true
-        default: 'minimal,base,jdk,full,node,node-slim'
+        default: 'minimal,base,jdk,jdk25,full,node,node-slim'
       platforms:
         description: 'Comma-separated list of platforms to build for'
         required: true
@@ -41,7 +41,7 @@ jobs:
     env:
       IMAGE_OWNER: ${{ github.repository_owner }}
       IMAGE_REPO: ${{ github.event.repository.name }}
-      VARIANTS: ${{ inputs.variants || 'minimal,base,jdk,full,node,node-slim' }}
+      VARIANTS: ${{ inputs.variants || 'minimal,base,jdk,jdk25,full,node,node-slim' }}
       PLATFORMS: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
       UPLOAD_SARIF: ${{ inputs.upload_sarif || 'false' }}
       BLACKDUCK_SCAN: ${{ inputs.blackduck_scan || 'false' }}
@@ -269,6 +269,14 @@ jobs:
           category: trivy-image-jdk
         continue-on-error: true
 
+      - name: Upload Trivy SARIF (jdk25)
+        if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/jdk25.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.37.3
+        with:
+          sarif_file: trivy-reports/jdk25.sarif
+          category: trivy-image-jdk25
+        continue-on-error: true
+
       - name: Upload Trivy SARIF (full)
         if: env.UPLOAD_SARIF == 'true' && hashFiles('trivy-reports/full.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
         uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.37.3
@@ -309,7 +317,7 @@ jobs:
     uses: ./.github/workflows/test-images.yml
     secrets: inherit  # https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#passing-secrets-to-nested-workflows
     with:
-      variants: ${{ inputs.variants || 'minimal,base,jdk,full,node,node-slim' }}
+      variants: ${{ inputs.variants || 'minimal,base,jdk,jdk25,full,node,node-slim' }}
       image_tag_suffix: ${{ needs.build-and-push.outputs.date_tag || '' }}
       platforms: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
 

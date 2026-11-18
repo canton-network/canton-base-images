@@ -19,7 +19,7 @@ Usage: ${SCRIPT_NAME} [--json] [--verbose]
 Checks upstream sources for newer releases of:
 - BusyBox, glibc, ncurses, bash
 - TZDB (IANA time zone database)
-- OpenJDK Temurin 21 (Linux x64/aarch64)
+- OpenJDK Temurin 21 and 25 (Linux x64/aarch64)
 - Tini (GitHub releases)
 - NodeJS (latest LTS release within the current major version)
 
@@ -74,8 +74,9 @@ compare_tzdb() {
   if [[ "$ll" > "$cl" ]]; then echo newer; elif [[ "$ll" == "$cl" ]]; then echo equal; else echo older; fi
 }
 
-adoptium_latest_21() {
-  local url="https://api.github.com/repos/adoptium/temurin21-binaries/releases/latest"
+adoptium_latest() {
+  local major="$1"
+  local url="https://api.github.com/repos/adoptium/temurin${major}-binaries/releases/latest"
   local tag; tag=$(curl_get "$url" | sed -n 's/.*"tag_name": "jdk-\([^"]\+\)".*/\1/p') || true
   # Convert 21.0.9+11 -> 21.0.9_11
   echo "$tag" | sed 's/+/_/'
@@ -161,6 +162,7 @@ URLS[ncurses]="https://ftp.gnu.org/pub/gnu/ncurses/"
 URLS[bash]="https://ftp.gnu.org/gnu/bash/"
 URLS[tzdb]="https://data.iana.org/time-zones/releases/"
 URLS[openjdk]="https://adoptium.net/temurin/releases/?version=21"
+URLS[openjdk25]="https://adoptium.net/temurin/releases/?version=25"
 URLS[tini]="https://github.com/krallin/tini/releases"
 URLS[cacert]="https://curl.se/docs/caextract.html"
 URLS[screen]="https://ftp.gnu.org/gnu/screen/"
@@ -173,6 +175,7 @@ CURRENT[ncurses]="$NCURSES_VERSION"
 CURRENT[bash]="$BASH_VERSION"
 CURRENT[tzdb]="$TZDB_VERSION"
 CURRENT[openjdk]="$OPENJDK_VERSION"
+CURRENT[openjdk25]="$OPENJDK25_VERSION"
 CURRENT[tini]="${TINI_VERSION#v}"
 CURRENT[cacert]="$CACERT_VERSION"
 CURRENT[screen]="$SCREEN_VERSION"
@@ -184,7 +187,8 @@ LATEST[glibc]=$(check_glibc || true)
 LATEST[ncurses]=$(check_ncurses || true)
 LATEST[bash]=$(check_bash || true)
 LATEST[tzdb]=$(check_tzdb || true)
-LATEST[openjdk]=$(adoptium_latest_21 || true)
+LATEST[openjdk]=$(adoptium_latest 21 || true)
+LATEST[openjdk25]=$(adoptium_latest 25 || true)
 LATEST[tini]=$(check_tini || true)
 LATEST[cacert]=$(check_cacert || true)
 LATEST[screen]=$(check_screen || true)
@@ -199,7 +203,7 @@ updates_found=0
 if [[ $JSON -eq 1 ]]; then
   printf '{"components":{'
   first=1
-  for k in busybox glibc ncurses bash tzdb openjdk tini cacert screen jemalloc node; do
+  for k in busybox glibc ncurses bash tzdb openjdk openjdk25 tini cacert screen jemalloc node; do
     cur=${CURRENT[$k]:-}
     lat=${LATEST[$k]:-}
     url=${URLS[$k]}
@@ -209,7 +213,7 @@ if [[ $JSON -eq 1 ]]; then
       if [[ "$k" == "tzdb" ]]; then
         cmp=$(compare_tzdb "$cur" "$lat")
         [[ "$cmp" == "newer" ]] && upd=true
-      elif [[ "$k" == "openjdk" ]]; then
+      elif [[ "$k" == "openjdk" || "$k" == "openjdk25" ]]; then
         cur_norm=${cur/+/_}
         lat_norm=${lat/+/_}
         if [[ "$lat_norm" != "$cur_norm" ]]; then upd=true; fi
@@ -225,7 +229,7 @@ if [[ $JSON -eq 1 ]]; then
   exit 0
 else
   printf "%-20s\t%-10s\t%-10s\t%-10s\t%-10s\n" "Component" "Current" "Latest" "Update"  "URL"
-  for k in busybox glibc ncurses bash tzdb openjdk tini cacert screen jemalloc node; do
+  for k in busybox glibc ncurses bash tzdb openjdk openjdk25 tini cacert screen jemalloc node; do
     cur=${CURRENT[$k]:-}
     lat=${LATEST[$k]:-}
     url=${URLS[$k]}
@@ -234,7 +238,7 @@ else
       if [[ "$k" == "tzdb" ]]; then
         cmp=$(compare_tzdb "$cur" "$lat")
         [[ "$cmp" == "newer" ]] && upd="YES"
-      elif [[ "$k" == "openjdk" ]]; then
+      elif [[ "$k" == "openjdk" || "$k" == "openjdk25" ]]; then
         cur_norm=${cur/+/_}
         lat_norm=${lat/+/_}
         [[ "$lat_norm" != "$cur_norm" ]] && upd="YES"

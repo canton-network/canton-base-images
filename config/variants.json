@@ -48,7 +48,8 @@
       "sbom": {
         "serial_number": "f3b4c5d6-e7f8-4901-b2c3-d4e5f6071829"
       },
-      "description": "jdk rootfs with JDK, tini, and all base components",
+      "description": "jdk rootfs with JDK 21, tini, and all base components",
+      "tag_aliases": ["jdk21"],
       "components": [
         "setup_system_config_files",
         "install_glibc",
@@ -59,6 +60,25 @@
         "install_tzdb",
         "install_tini",
         "install_jdk",
+        "configure_system"
+      ],
+      "use_full": false
+    },
+    "jdk25": {
+      "sbom": {
+        "serial_number": "9ccd770a-3100-494b-b5fa-f92731f56b56"
+      },
+      "description": "jdk rootfs with JDK 25, tini, and all base components",
+      "components": [
+        "setup_system_config_files",
+        "install_glibc",
+        "install_ncurses",
+        "install_busybox",
+        "install_bash",
+        "install_ca_certs",
+        "install_tzdb",
+        "install_tini",
+        "install_jdk25",
         "configure_system"
       ],
       "use_full": false

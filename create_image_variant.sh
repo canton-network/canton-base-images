@@ -37,7 +37,7 @@ Build Docker image with a specific rootfs variant.
 
 OPTIONS:
     --variant NAME       Use specific rootfs variant (default: jdk)
-                         Options: minimal, base, jdk, full, node, node-slim
+                         Options: minimal, base, jdk, jdk25, full, node, node-slim
     --tag NAME[,NAME...] Docker image tag(s) (required; comma-separated or repeatable)
     --platform LIST      Target platforms (default: linux/amd64,linux/arm64)
     --amd64-only        Build only amd64 platform
@@ -201,14 +201,52 @@ fi
 
 # Validate variant
 case "$VARIANT" in
-    certs|minimal|base|jdk|full|node|node-slim)
+    certs|minimal|base|jdk|jdk25|full|node|node-slim)
         ;;
     *)
         error "Unknown variant: $VARIANT"
-        error "Valid options: minimal, base, jdk, full, node, node-slim"
+        error "Valid options: minimal, base, jdk, jdk25, full, node, node-slim"
         exit 1
         ;;
 esac
+
+# Expand tag aliases defined in config/variants.json ("tag_aliases").
+# A tag whose tag part is "<variant>" or starts with "<variant>-" is duplicated
+# for each alias, e.g. with alias jdk21: repo:jdk-1.0.0 -> repo:jdk21-1.0.0
+expand_tag_aliases() {
+    local aliases=()
+    mapfile -t aliases < <(jq -r --arg v "$VARIANT" '.variants[$v].tag_aliases // [] | .[]' config/variants.json)
+    [[ ${#aliases[@]} -eq 0 ]] && return 0
+
+    local extra=() t repo tag alias new_tag
+    for t in "${TAGS[@]}"; do
+        # Only treat the text after the last ':' as the tag if it has no '/'
+        # (otherwise the ':' belongs to a registry host:port)
+        if [[ "$t" == *:* && "${t##*:}" != */* ]]; then
+            repo="${t%:*}"
+            tag="${t##*:}"
+        else
+            continue
+        fi
+        if [[ "$tag" == "$VARIANT" || "$tag" == "${VARIANT}-"* ]]; then
+            for alias in "${aliases[@]}"; do
+                new_tag="${repo}:${alias}${tag#"$VARIANT"}"
+                extra+=("$new_tag")
+            done
+        fi
+    done
+
+    local e existing found
+    for e in "${extra[@]}"; do
+        found=0
+        for existing in "${TAGS[@]}"; do
+            [[ "$existing" == "$e" ]] && found=1 && break
+        done
+        [[ $found -eq 0 ]] && TAGS+=("$e")
+    done
+    return 0
+}
+expand_tag_aliases
 
 # Check prerequisites
 check_prerequisites() {
