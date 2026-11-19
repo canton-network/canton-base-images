@@ -5,7 +5,7 @@ This project is dedicated to building a suite of secure, minimal, and multi-arch
 ## Key Features
 
 - **Multi-arch support**: linux/amd64 and linux/arm64
-- **Variant-based images**: minimal, base, jdk (standard), full
+- **Variant-based images**: minimal, base, jdk (standard, Java 21; also tagged `jdk21`), jdk25 (Java 25), full
 - **Security**: Trivy scanning integrated in CI, Mozilla CA certificates
 - **Automated updates**: Update checker for all components
 - **Reproducible builds**: Version-pinned dependencies with signature verification

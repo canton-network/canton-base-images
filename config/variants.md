@@ -41,7 +41,9 @@ This document describes the different container variants available in this proje
 ---
 
 ### jdk
-**Description:** jdk rootfs with JDK, tini, and all base components
+**Description:** jdk rootfs with JDK 21, tini, and all base components
+
+**Tags:** published as `jdk-*` and, for the same image, `jdk21-*` (via `tag_aliases` in `variants.json`).
 
 **Components:**
 - All components from `base`
@@ -58,6 +60,24 @@ This document describes the different container variants available in this proje
 - Default recommended variant
 
 **Size:** ~200-250 MB
+
+---
+
+### jdk25
+**Description:** jdk rootfs with JDK 25, tini, and all base components
+
+**Tags:** published as `jdk25-*`.
+
+**Components:**
+- All components from `base`
+- OpenJDK 25 (Temurin)
+- tini init system
+- Timezone database
+- CA certificates
+
+**Use Cases:**
+- Java applications targeting Java 25
+- Same layout as `jdk` (`JAVA_HOME=/usr/java`), so it is a drop-in swap
 
 ---
 
@@ -145,7 +165,7 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 |-------------|---------------------|
 | Smallest possible image | minimal |
 | Need shell scripting | base |
-| Java application | jdk |
+| Java application | jdk (Java 21) or jdk25 (Java 25) |
 | Production microservice | jdk |
 | Initial Release | full |
 | Custom build from scratch | minimal or base |
@@ -154,17 +174,18 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ## Component Matrix
 
-| Component | minimal | base | jdk | full |
-|-----------|---------|------|----------|-----|
-| glibc | ✓ | ✓ | ✓ | ✓ |
-| busybox (minimal) | ✓ | ✓ | ✓ | - |
-| busybox (full) | - | - | - | ✓ |
-| bash | - | ✓ | ✓ | ✓ |
-| ncurses | - | ✓ | ✓ | ✓ |
-| CA certificates | - | - | ✓ | ✓ |
-| Timezone DB | - | - | ✓ | ✓ |
-| tini | - | - | ✓ | ✓ |
-| OpenJDK 21 | - | - | ✓ | ✓ |
+| Component | minimal | base | jdk / jdk21 | jdk25 | full |
+|-----------|---------|------|----------|-------|-----|
+| glibc | ✓ | ✓ | ✓ | ✓ | ✓ |
+| busybox (minimal) | ✓ | ✓ | ✓ | ✓ | - |
+| busybox (full) | - | - | - | - | ✓ |
+| bash | - | ✓ | ✓ | ✓ | ✓ |
+| ncurses | - | ✓ | ✓ | ✓ | ✓ |
+| CA certificates | - | - | ✓ | ✓ | ✓ |
+| Timezone DB | - | - | ✓ | ✓ | ✓ |
+| tini | - | - | ✓ | ✓ | ✓ |
+| OpenJDK 21 | - | - | ✓ | - | ✓ |
+| OpenJDK 25 | - | - | - | ✓ | - |
 
 ---
 

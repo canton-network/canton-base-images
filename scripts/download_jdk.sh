@@ -25,8 +25,6 @@ done < <(jq -r '.SOURCE | to_entries[] | .key as $outer_key | .value | to_entrie
 
 # Script configuration
 readonly SCRIPT_NAME="${BASH_SOURCE[0]##*/}"
-readonly VERSION_TAG="jdk-$(sed 's/_/%2B/' <<< "$OPENJDK_VERSION")"
-readonly BASE_URL="https://github.com/adoptium/temurin21-binaries/releases/download/${VERSION_TAG}"
 readonly MAX_RETRIES=3
 readonly RETRY_DELAY=5
 
@@ -36,6 +34,19 @@ SKIP_VERIFY=0
 VERBOSE=0
 DOWNLOAD_AMD64=1
 DOWNLOAD_ARM64=1
+JDK_SELECTION="all"
+
+# Supported JDK major versions mapped to their artifacts.json SOURCE key.
+# 21 uses the historical "OPENJDK" key (default jdk image); 25 uses "OPENJDK25".
+declare -A JDK_KEYS=(["21"]="OPENJDK" ["25"]="OPENJDK25")
+
+# Per-run state set by select_jdk()
+JDK_MAJOR=""
+JDK_VERSION=""
+JDK_X86_NAME=""
+JDK_ARM_NAME=""
+JDK_KEYID=""
+BASE_URL=""
 
 # Cleanup function for error handling
 cleanup() {
@@ -43,10 +54,7 @@ cleanup() {
     if [[ $exit_code -ne 0 ]]; then
         echo "Error: Download failed with exit code $exit_code" >&2
         # Clean up partial downloads
-        [[ -f "${SOURCE_DIR}/${OPENJDK_X86_NAME}.tmp" ]] && rm -f "${SOURCE_DIR}/${OPENJDK_X86_NAME}.tmp"
-        [[ -f "${SOURCE_DIR}/${OPENJDK_ARM_NAME}.tmp" ]] && rm -f "${SOURCE_DIR}/${OPENJDK_ARM_NAME}.tmp"
-        [[ -f "${SOURCE_DIR}/${OPENJDK_X86_NAME}.sig.tmp" ]] && rm -f "${SOURCE_DIR}/${OPENJDK_X86_NAME}.sig.tmp"
-        [[ -f "${SOURCE_DIR}/${OPENJDK_ARM_NAME}.sig.tmp" ]] && rm -f "${SOURCE_DIR}/${OPENJDK_ARM_NAME}.sig.tmp"
+        rm -f "${SOURCE_DIR}"/OpenJDK*U-jdk_*.tmp
     fi
 }
 trap cleanup EXIT
@@ -65,6 +73,7 @@ OPTIONS:
     --verbose           Show detailed download progress
     --amd64-only        Download only amd64 binary
     --arm64-only        Download only arm64 binary
+    --jdk VERSION       JDK major version to download: 21, 25 or all (default: all)
     -h, --help          Show this help message
 
 PREREQUISITES:
@@ -75,6 +84,7 @@ EXAMPLES:
     ${SCRIPT_NAME}                    # Download both architectures
     ${SCRIPT_NAME} --force            # Force re-download
     ${SCRIPT_NAME} --amd64-only       # Download only amd64
+    ${SCRIPT_NAME} --jdk 25           # Download only JDK 25
 
 EOF
 }
@@ -112,6 +122,14 @@ while [[ $# -gt 0 ]]; do
             DOWNLOAD_AMD64=0
             shift
             ;;
+        --jdk)
+            if [[ $# -lt 2 ]]; then
+                error "--jdk requires a value (21, 25 or all)"
+                exit 1
+            fi
+            JDK_SELECTION="$2"
+            shift 2
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -123,6 +141,27 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$JDK_SELECTION" != "all" ]] && [[ ! -v "JDK_KEYS[$JDK_SELECTION]" ]]; then
+    error "Unsupported --jdk value: ${JDK_SELECTION} (expected one of: ${!JDK_KEYS[*]}, all)"
+    exit 1
+fi
+
+# Load artifact details for a JDK major version from the readonly SOURCE vars
+select_jdk() {
+    local major="$1"
+    local key="${JDK_KEYS[$major]}"
+    local v="${key}_VERSION" x="${key}_X86_NAME" a="${key}_ARM_NAME" k="${key}_KEYID"
+
+    JDK_MAJOR="$major"
+    JDK_VERSION="${!v}"
+    JDK_X86_NAME="${!x}"
+    JDK_ARM_NAME="${!a}"
+    JDK_KEYID="${!k}"
+    local version_tag
+    version_tag="jdk-$(sed 's/_/%2B/' <<< "$JDK_VERSION")"
+    BASE_URL="https://github.com/adoptium/temurin${major}-binaries/releases/download/${version_tag}"
+}
 
 # Validate prerequisites
 validate_prerequisites() {
@@ -241,7 +280,7 @@ download_arch() {
     local package_file="${SOURCE_DIR}/${package_name}"
     local sig_file="${SOURCE_DIR}/${package_name}.sig"
 
-    log "Processing OpenJDK ${arch}..."
+    log "Processing OpenJDK ${JDK_MAJOR} ${arch}..."
 
     # Check if already downloaded and verified
     if [[ $FORCE_DOWNLOAD -eq 0 ]] && [[ -f "$package_file" ]] && [[ -f "$sig_file" ]]; then
@@ -249,8 +288,8 @@ download_arch() {
 
         if [[ $SKIP_VERIFY -eq 0 ]]; then
             # Import key and verify existing file
-            import_gpg_key "$OPENJDK_KEYID" || return 1
-            if verify_signature "$sig_file" "$package_file" "OpenJDK ${arch}"; then
+            import_gpg_key "$JDK_KEYID" || return 1
+            if verify_signature "$sig_file" "$package_file" "OpenJDK ${JDK_MAJOR} ${arch}"; then
                 log "Existing file verified successfully, skipping download"
                 return 0
             else
@@ -265,12 +304,12 @@ download_arch() {
 
     # Download package
     if [[ $FORCE_DOWNLOAD -eq 1 ]] || [[ ! -f "$package_file" ]]; then
-        download_file "${BASE_URL}/${package_name}" "$package_file" "OpenJDK ${arch} package" || return 1
+        download_file "${BASE_URL}/${package_name}" "$package_file" "OpenJDK ${JDK_MAJOR} ${arch} package" || return 1
     fi
 
     # Download signature
     if [[ $FORCE_DOWNLOAD -eq 1 ]] || [[ ! -f "$sig_file" ]]; then
-        download_file "${BASE_URL}/${package_name}.sig" "$sig_file" "OpenJDK ${arch} signature" || return 1
+        download_file "${BASE_URL}/${package_name}.sig" "$sig_file" "OpenJDK ${JDK_MAJOR} ${arch} signature" || return 1
     fi
 
     # Skip verification if requested
@@ -280,41 +319,55 @@ download_arch() {
     fi
 
     # Verify signature
-    verify_signature "$sig_file" "$package_file" "OpenJDK ${arch}" || return 1
+    verify_signature "$sig_file" "$package_file" "OpenJDK ${JDK_MAJOR} ${arch}" || return 1
 }
 
 # Main download function
 download_openjdk() {
     # Import GPG key once for all downloads
     if [[ $SKIP_VERIFY -eq 0 ]]; then
-        import_gpg_key "$OPENJDK_KEYID" || return 1
+        import_gpg_key "$JDK_KEYID" || return 1
     fi
 
     # Download amd64
     if [[ $DOWNLOAD_AMD64 -eq 1 ]]; then
-        download_arch "amd64" "$OPENJDK_X86_NAME" || return 1
+        download_arch "amd64" "$JDK_X86_NAME" || return 1
     fi
 
     # Download arm64
     if [[ $DOWNLOAD_ARM64 -eq 1 ]]; then
-        download_arch "arm64" "$OPENJDK_ARM_NAME" || return 1
+        download_arch "arm64" "$JDK_ARM_NAME" || return 1
     fi
 }
 
 # Main function
 main() {
+    local majors=()
+    if [[ "$JDK_SELECTION" == "all" ]]; then
+        mapfile -t majors < <(printf '%s\n' "${!JDK_KEYS[@]}" | sort -n)
+    else
+        majors=("$JDK_SELECTION")
+    fi
+
     log "Starting OpenJDK download process"
-    log "Version: ${OPENJDK_VERSION}"
+    log "JDK versions: ${majors[*]}"
     log "Destination: ${SOURCE_DIR}"
     log "AMD64: ${DOWNLOAD_AMD64}, ARM64: ${DOWNLOAD_ARM64}"
 
     validate_prerequisites
     setup_directories
-    download_openjdk
 
-    log "Download complete!"
-    [[ $DOWNLOAD_AMD64 -eq 1 ]] && log "  - AMD64: ${SOURCE_DIR}/${OPENJDK_X86_NAME}"
-    [[ $DOWNLOAD_ARM64 -eq 1 ]] && log "  - ARM64: ${SOURCE_DIR}/${OPENJDK_ARM_NAME}"
+    local major
+    for major in "${majors[@]}"; do
+        select_jdk "$major"
+        log "OpenJDK ${JDK_MAJOR} version: ${JDK_VERSION}"
+        download_openjdk
+
+        log "OpenJDK ${JDK_MAJOR} download complete!"
+        [[ $DOWNLOAD_AMD64 -eq 1 ]] && log "  - AMD64: ${SOURCE_DIR}/${JDK_X86_NAME}"
+        [[ $DOWNLOAD_ARM64 -eq 1 ]] && log "  - ARM64: ${SOURCE_DIR}/${JDK_ARM_NAME}"
+    done
+    return 0
 }
 
 # Run main function

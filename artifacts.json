@@ -31,6 +31,12 @@
         "ARM_NAME": "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.13_9.tar.gz",
         "KEYID": "3B04D753C9050D9A5D343F39843C48A565F8F04B"
     },
+    "OPENJDK25": {
+        "VERSION": "25.0.5_8",
+        "X86_NAME": "OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz",
+        "ARM_NAME": "OpenJDK25U-jdk_aarch64_linux_hotspot_25.0.5_8.tar.gz",
+        "KEYID": "3B04D753C9050D9A5D343F39843C48A565F8F04B"
+    },
     "TINI": {
         "VERSION": "v0.19.0",
         "X86_NAME": "tini-amd64",
@@ -73,6 +79,6 @@
     "release_candidate": "",
     "production": "europe-docker.pkg.dev/da-images/public/docker/da-base-image"
   },
-  "release_tags": ["full", "jdk", "base", "minimal"],
+  "release_tags": ["full", "jdk", "jdk21", "jdk25", "base", "minimal"],
   "infrastructure": []
 }

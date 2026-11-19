@@ -28,7 +28,7 @@ Usage: ${SCRIPT_NAME} --variant VARIANT --tag IMAGE_TAG [OPTIONS]
 Run functional tests against a container image variant.
 
 OPTIONS:
-  --variant NAME       Variant to test (minimal, base, jdk, full, node, node-slim)
+  --variant NAME       Variant to test (minimal, base, jdk, jdk25, full, node, node-slim)
   --tag IMAGE_TAG      Docker image tag to test
   --platform PLATFORM  Platform to test (e.g., linux/amd64, linux/arm64)
   --no-fail-fast       Continue testing even after failures
@@ -185,9 +185,10 @@ test_base() {
   run_test "base: no java" /bin/bash -c "! command -v java"
 }
 
-# jdk variant tests
+# jdk variant tests. Argument: expected JDK major version (e.g. 21, 25)
 test_jdk() {
-  log "Testing jdk variant specifics..."
+  local major="${1:-21}"
+  log "Testing jdk variant specifics (JDK ${major})..."
 
   # All base components
   run_test "bash: exists" /bin/bash -c "command -v bash"
@@ -197,6 +198,7 @@ test_jdk() {
   run_test "jdk: java exists" /bin/bash -c "command -v java"
   run_test "jdk: JAVA_HOME set" /bin/bash -c "test -n \"\$JAVA_HOME\""
   run_test_with_output "jdk: version" "openjdk version" /usr/java/bin/java -version
+  run_test_with_output "jdk: major version ${major}" "version \"${major}." /usr/java/bin/java -version
   run_test "jdk: javac exists" /bin/bash -c "test -f /usr/java/bin/javac"
 
   # Tini
@@ -291,13 +293,23 @@ main() {
       test_core
       test_base
       ;;
-    jdk)
+    jdk21)
       test_core
-      test_jdk
+      test_jdk 21
       ;;
-    full)
+    jdk25)
+      test_core
+      test_jdk 25
+      ;;
+    full-jdk25)
       test_core
       test_full
+      test_jdk 25
+      ;;
+    full-jdk21)
+      test_core
+      test_full
+      test_jdk 21
       ;;
     node)
       test_core

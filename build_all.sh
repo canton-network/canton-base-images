@@ -37,6 +37,7 @@ if [[ -n "$BLACKDUCK_SCAN_FLAG" ]]; then
     echo "Unpacking pre-built binaries..."
     ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG nodejs
     ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG openjdk
+    ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG openjdk25
     ./scripts/unpack_and_scan.sh --clean --arch amd64 $BLACKDUCK_SCAN_FLAG tini
 fi
 
