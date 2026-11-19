@@ -293,7 +293,7 @@ main() {
       test_core
       test_base
       ;;
-    jdk)
+    jdk21)
       test_core
       test_jdk 21
       ;;
@@ -301,9 +301,15 @@ main() {
       test_core
       test_jdk 25
       ;;
-    full)
+    full-jdk25)
       test_core
       test_full
+      test_jdk 25
+      ;;
+    full-jdk21)
+      test_core
+      test_full
+      test_jdk 21
       ;;
     node)
       test_core

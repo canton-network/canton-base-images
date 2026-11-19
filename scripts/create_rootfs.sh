@@ -1057,7 +1057,7 @@ build_rootfs_arch() {
             "install_ncurses")
                 install_ncurses "${rootfs_dir}" "${arch}" "${use_full_flag}"
                 ;;
-            "install_jdk")
+            "install_jdk21")
                 install_jdk "${rootfs_dir}" "${arch}" 21
                 ;;
             "install_jdk25")
