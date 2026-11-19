@@ -55,12 +55,17 @@ for jdk in jdk21 jdk25 full-jdk21 full-jdk25; do
 	    extra_tags+=(--tag "${local_repo}:full-${timestamp}")
     fi
 
+    if [[ "$jdk" == "jdk21" ]]; then
+	    extra_tags=(--tag "${local_repo}:jdk-latest") 
+	    extra_tags+=(--tag "${local_repo}:jdk-${version}") 
+	    extra_tags+=(--tag "${local_repo}:jdk-${timestamp}")
+    fi
+
     bash ./scripts/create_rootfs.sh --variant ${jdk} --sbom-version 1 --clean --image-version "$version"
     bash ./create_image_variant.sh --variant ${jdk} "${extra_tags[@]}" --tag "${local_repo}:${jdk}-${version}" --tag "${local_repo}:${jdk}-latest" --tag "${local_repo}:${jdk}-${timestamp}" --platform "$local_platform" --load "${BLACKDUCK_SCAN_ARGS[@]}"
     bash ./scripts/test_image.sh --variant ${jdk} --tag "${local_repo}:${jdk}-latest"
     bash ./scripts/validate_sbom.sh "${local_repo}:${jdk}-latest"
 done
-exit
 
 bash ./scripts/create_rootfs.sh --variant certs --sbom-version 1 --clean --image-version "$version"
 bash ./create_image_variant.sh --variant certs --tag "${local_repo}:certs-${version}" --tag "${local_repo}:certs-latest" --tag "${local_repo}:certs-${timestamp}" --platform "$local_platform" --load "${BLACKDUCK_SCAN_ARGS[@]}"
@@ -84,11 +89,5 @@ bash ./scripts/create_rootfs.sh --variant node-slim --sbom-version 1 --clean --i
 bash ./create_image_variant.sh --variant node-slim --tag "${local_repo}:node-slim-${version}" --tag "${local_repo}:node-slim-latest" --tag "${local_repo}:node-slim-${timestamp}" --platform "$local_platform" --load "${BLACKDUCK_SCAN_ARGS[@]}"
 bash ./scripts/test_image.sh --variant node-slim --tag "${local_repo}:node-slim-latest"
 bash ./scripts/validate_sbom.sh "${local_repo}:node-latest"
-
-bash ./scripts/create_rootfs.sh --variant full-jdk25 --sbom-version 1 --clean --image-version "$version"
-bash ./create_image_variant.sh --variant full-jdk25 --tag "${local_repo}:full-jdk25-${version}" --tag "${local_repo}:full-jdk25" --tag "${local_repo}:full-jdk25-${timestamp}" --platform "$local_platform" --load "${BLACKDUCK_SCAN_ARGS[@]}"
-bash ./scripts/test_image.sh --variant full --tag "${local_repo}:full-jdk25-latest"
-bash ./scripts/validate_sbom.sh "${local_repo}:full-jdk25-latest"
-
 
 echo "Create Image Complete"
