@@ -40,5 +40,5 @@ COPY --chown=root:root rootfs_jdk_$TARGETARCH /
 COPY --chown=1001:1001 config/profile /home/nonroot
 COPY --chown=1001:1001 empty /app
 WORKDIR /home/nonroot
-USER nonroot:nonroot
+USER 1001:1001
 CMD [ "/bin/bash" ]
