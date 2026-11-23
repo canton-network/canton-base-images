@@ -7,7 +7,7 @@ on:
         description: 'Comma-separated variants to test'
         required: false
         type: string
-        default: 'minimal,base,jdk,full'
+        default: 'minimal,base,jdk,jdk25,full'
       image_tag_suffix:
         description: 'Tag suffix'
         required: false
@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [minimal, base, jdk, full]
+        variant: [minimal, base, jdk, jdk25, full]
         platform: [linux/amd64, linux/arm64]
     steps:
       - name: Checkout canton-network/canton-base-images
@@ -53,7 +53,7 @@ jobs:
       - name: Check if variant should be tested
         id: check
         run: |
-          variants="${{ inputs.variants || 'minimal,base,jdk,full' }}"
+          variants="${{ inputs.variants || 'minimal,base,jdk,jdk25,full' }}"
           if [[ ",$variants," == *",${{ matrix.variant }},"* ]]; then
             echo "test=true" >> "$GITHUB_OUTPUT"
           else

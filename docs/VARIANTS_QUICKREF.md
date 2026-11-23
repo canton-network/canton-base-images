@@ -36,7 +36,8 @@ This document provides a quick reference to the different base image variants av
 
 ## jdk
 
-*   **Description**: jdk rootfs with JDK, tini, and all base components
+*   **Description**: jdk rootfs with JDK 21, tini, and all base components
+*   **Tag aliases**: `jdk21` (every `jdk*` tag is also published as `jdk21*`)
 *   **Components**:
     *   `setup_system_config_files`
     *   `install_glibc`
@@ -47,6 +48,21 @@ This document provides a quick reference to the different base image variants av
     *   `install_tzdb`
     *   `install_tini`
     *   `install_jdk`
+    *   `configure_system`
+
+## jdk25
+
+*   **Description**: jdk rootfs with JDK 25, tini, and all base components
+*   **Components**:
+    *   `setup_system_config_files`
+    *   `install_glibc`
+    *   `install_ncurses`
+    *   `install_busybox`
+    *   `install_bash`
+    *   `install_ca_certs`
+    *   `install_tzdb`
+    *   `install_tini`
+    *   `install_jdk25`
     *   `configure_system`
 
 ## node
