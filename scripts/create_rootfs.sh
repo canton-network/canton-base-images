@@ -48,11 +48,19 @@ IMAGE_VERSION=""
 
 # Architecture mappings
 declare -A tini_map
-declare -A jdk_map
 declare -A nodejs_map
 tini_map=(["amd64"]="tini-amd64" ["arm64"]="tini-arm64")
-jdk_map=(["amd64"]="OpenJDK21U-jdk_x64_linux_hotspot_" ["arm64"]="OpenJDK21U-jdk_aarch64_linux_hotspot_")
 nodejs_map=(["amd64"]="${NODEJS_X86_NAME}" ["arm64"]="${NODEJS_ARM_NAME}")
+
+# JDK archives keyed by "<major>_<arch>"; versions keyed by major.
+# JDK 21 uses the historical OPENJDK artifacts.json key (default jdk image).
+declare -A jdk_archive_map
+declare -A jdk_version_map
+jdk_archive_map=(
+    ["21_amd64"]="${OPENJDK_X86_NAME}" ["21_arm64"]="${OPENJDK_ARM_NAME}"
+    ["25_amd64"]="${OPENJDK25_X86_NAME}" ["25_arm64"]="${OPENJDK25_ARM_NAME}"
+)
+jdk_version_map=(["21"]="${OPENJDK_VERSION}" ["25"]="${OPENJDK25_VERSION}")
 
 # Cleanup function for error handling
 cleanup() {
@@ -96,7 +104,8 @@ VARIANT DETAILS:
 	certs:	  CA certs only
     minimal:  glibc + busybox (minimal), CA certs, tzdb
     base:     minimal + bash + ncurses + busybox (minimal)
-    jdk: base + JDK + tini + tzdb + CA certs
+    jdk:      base + JDK 21 + tini + tzdb + CA certs (also tagged jdk21)
+    jdk25:    base + JDK 25 + tini + tzdb + CA certs
     node:     base + Node.js + tini + tzdb + CA certs
     node-slim: node without npm, npx and corepack
     full:      jdk with complete libraries and busybox
@@ -219,13 +228,19 @@ validate_prerequisites() {
         fi
     fi
 
-    if [[ "$VARIANT" == "jdk" ]] || [[ "$VARIANT" == "full" ]]; then
+    local jdk_major=""
+    case "$VARIANT" in
+        jdk|full) jdk_major="21" ;;
+        jdk25)    jdk_major="25" ;;
+    esac
+
+    if [[ -n "$jdk_major" ]]; then
         # Check JDK
-        if [[ $BUILD_AMD64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${jdk_map[amd64]}${OPENJDK_VERSION}.tar.gz" ]]; then
-            missing_components+=("JDK (amd64)")
+        if [[ $BUILD_AMD64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${jdk_archive_map[${jdk_major}_amd64]}" ]]; then
+            missing_components+=("JDK ${jdk_major} (amd64)")
         fi
-        if [[ $BUILD_ARM64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${jdk_map[arm64]}${OPENJDK_VERSION}.tar.gz" ]]; then
-            missing_components+=("JDK (arm64)")
+        if [[ $BUILD_ARM64 -eq 1 ]] && [[ ! -f "${SOURCE_DIR}/${jdk_archive_map[${jdk_major}_arm64]}" ]]; then
+            missing_components+=("JDK ${jdk_major} (arm64)")
         fi
 
         # Check tini
@@ -635,12 +650,16 @@ install_libstdc++() {
 
 }
 
-# Install JDK (jdk, full variants)
+# Install JDK (jdk, jdk25, full variants). Optional third argument selects the
+# JDK major version (default: 21).
 install_jdk() {
     local rootfs_dir="$1"
     local arch="$2"
+    local major="${3:-21}"
+    local version="${jdk_version_map[$major]}"
+    local archive="${jdk_archive_map[${major}_${arch}]}"
 
-    jq --arg version "$OPENJDK_VERSION" '.components += [{
+    jq --arg version "$version" '.components += [{
         "bom-ref": "temurin-jdk",
         "type": "library",
         "name": "temurin-jdk",
@@ -657,9 +676,9 @@ install_jdk() {
     }
     ]' "${rootfs_dir}/etc/sbom.cdx.json" > "${rootfs_dir}/etc/sbom_tmp.json" && mv "${rootfs_dir}/etc/sbom_tmp.json" "${rootfs_dir}/etc/sbom.cdx.json"
 
-    log "Installing JDK for ${arch}..."
+    log "Installing JDK ${major} (${version}) for ${arch}..."
     mkdir -p "${rootfs_dir}/usr/java/"
-    tar --strip-components=1 -xzf "${SOURCE_DIR}/${jdk_map[$arch]}${OPENJDK_VERSION}.tar.gz" \
+    tar --strip-components=1 -xzf "${SOURCE_DIR}/${archive}" \
         -C "${rootfs_dir}/usr/java/"
 }
 
@@ -1038,8 +1057,11 @@ build_rootfs_arch() {
             "install_ncurses")
                 install_ncurses "${rootfs_dir}" "${arch}" "${use_full_flag}"
                 ;;
-            "install_jdk")
-                install_jdk "${rootfs_dir}" "${arch}"
+            "install_jdk21")
+                install_jdk "${rootfs_dir}" "${arch}" 21
+                ;;
+            "install_jdk25")
+                install_jdk "${rootfs_dir}" "${arch}" 25
                 ;;
             "install_node")
                 install_node "${rootfs_dir}" "${arch}"
